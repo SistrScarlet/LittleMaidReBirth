@@ -1,9 +1,9 @@
 package com.sistr.lmrb.entity;
 
-import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.IInventory;
 
 public interface IHasInventory {
 
-    Inventory getInventory();
+    IInventory getInventory();
 
 }

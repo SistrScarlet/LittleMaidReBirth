@@ -62,6 +62,12 @@ public class LittleMaidContainer extends Container {
         layoutPlayerInventorySlots(8, 126);
     }
 
+    //todo シフトクリック時の処理
+    @Override
+    public ItemStack transferStackInSlot(PlayerEntity playerIn, int index) {
+        return super.transferStackInSlot(playerIn, index);
+    }
+
     @Override
     public boolean canInteractWith(PlayerEntity playerIn) {
         return this.owner != null && this.owner.isAlive() && this.owner.getDistance(playerIn) < 8.0F;

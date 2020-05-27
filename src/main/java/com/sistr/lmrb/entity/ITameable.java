@@ -7,10 +7,17 @@ import java.util.UUID;
 
 public interface ITameable {
 
-    void setOwner(Entity owner);
+    String NONE = "None";
+    String WAIT = "Wait";
+    String ESCORT = "Escort";
+    String FREEDOM = "Freedom";
 
     Optional<Entity> getOwner();
 
+    void setOwnerId(UUID id);
+
     Optional<UUID> getOwnerId();
+
+    String getMovingState();
 
 }

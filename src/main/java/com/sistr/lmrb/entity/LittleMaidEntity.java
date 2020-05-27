@@ -1,6 +1,9 @@
 package com.sistr.lmrb.entity;
 
 import com.google.common.collect.Sets;
+import com.sistr.lmrb.entity.goal.EscortGoal;
+import com.sistr.lmrb.entity.goal.FreedomGoal;
+import com.sistr.lmrb.entity.goal.WaitGoal;
 import com.sistr.lmrb.entity.mode.*;
 import com.sistr.lmrb.setup.Registration;
 import net.blacklab.lmr.entity.maidmodel.IHasMultiModel;
@@ -10,8 +13,10 @@ import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.monster.CreeperEntity;
 import net.minecraft.entity.monster.IMob;
+import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.container.SimpleNamedContainerProvider;
 import net.minecraft.item.ItemStack;
@@ -20,6 +25,9 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraft.network.IPacket;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.datasync.DataParameter;
+import net.minecraft.network.datasync.DataSerializers;
+import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
@@ -41,19 +49,22 @@ import java.util.UUID;
 //継承しないのが吉
 //メイドさんはインベントリとモードとマルチモデルを持ち、契約可能なモブである
 //モードは排他
-public class LittleMaidEntity extends CreatureEntity implements IEntityAdditionalSpawnData, IHasMode, IHasInventory, ITameable, IHasMultiModel {
+public class LittleMaidEntity extends CreatureEntity implements IEntityAdditionalSpawnData, IHasInventory, ITameable, IHasMode, IArcher, IHasMultiModel {
+    //変数群 カオス
+    private static final DataParameter<Boolean> AIMING = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.BOOLEAN);
+    private static final DataParameter<String> MOVING_STATE = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.STRING);
+    private static final DataParameter<Optional<UUID>> OWNER_ID = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.OPTIONAL_UNIQUE_ID);
     private final DefaultMultiModel comp = new DefaultMultiModel(this,
             ModelManager.instance.getDefaultTexture(this),
             ModelManager.instance.getDefaultTexture(this));
     //todo モードの追加方法を変えるべし
     private final DefaultModeController modeController = new DefaultModeController(this,
             Sets.newHashSet(
-                    new FencerMode(this, 1.5D, false),
-                    new ArcherMode(this)));
+                    new FencerMode(this, 1.25D, false),
+                    new ArcherMode(this, this, 0.1F, 10, 16)));
     private final Inventory inventory = new Inventory(18);
-    @Nullable
-    private UUID ownerId;
 
+    //コンストラクタ
     public LittleMaidEntity(EntityType<LittleMaidEntity> type, World worldIn) {
         super(type, worldIn);
     }
@@ -62,25 +73,24 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         super(Registration.LITTLE_MAID_MOB.get(), world);
     }
 
+    //レジスタ
+
     @Override
     protected void registerGoals() {
-        //this.sitGoal = new SitGoal(this);
         this.goalSelector.addGoal(0, new SwimGoal(this));
-        //this.goalSelector.addGoal(2, this.sitGoal);
-        //this.goalSelector.addGoal(4, new LeapAtTargetGoal(this, 0.4F));
-        //this.goalSelector.addGoal(5, new MeleeAttackGoal(this, 1.0D, true));
-        //this.goalSelector.addGoal(6, new FollowOwnerGoal(this, 1.0D, 10.0F, 2.0F, false));
-        //this.goalSelector.addGoal(15, new WaterAvoidingRandomWalkingGoal(this, 1.0D));
+        this.goalSelector.addGoal(5, new WaitGoal(this, this));
         this.goalSelector.addGoal(10, new ModeWrapperGoal(this));
-        this.goalSelector.addGoal(20, new LookAtGoal(this, PlayerEntity.class, 8.0F));
-        this.goalSelector.addGoal(20, new LookRandomlyGoal(this));
+        this.goalSelector.addGoal(15, new EscortGoal(this,  this, 4, 3));
+        this.goalSelector.addGoal(15, new FreedomGoal(this, this, 1));
+        this.goalSelector.addGoal(20, new WaterAvoidingRandomWalkingGoal(this, 1.0D));
+        this.goalSelector.addGoal(25, new LookAtGoal(this, PlayerEntity.class, 8.0F));
+        this.goalSelector.addGoal(25, new LookRandomlyGoal(this));
         //this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
         //this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
         this.targetSelector.addGoal(3, new HurtByTargetGoal(this));
         this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, MobEntity.class,
                 5, true, false, entity ->
                 entity instanceof IMob && !(entity instanceof CreeperEntity)));
-        //registerModes();
     }
 
     @Override
@@ -88,10 +98,20 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         super.registerAttributes();
         this.getAttributes().registerAttribute(SharedMonsterAttributes.ATTACK_DAMAGE);
         this.getAttributes().registerAttribute(SharedMonsterAttributes.ATTACK_SPEED);
-        this.getAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.23);
+        this.getAttributes().registerAttribute(SharedMonsterAttributes.LUCK);
+        this.getAttributes().registerAttribute(PlayerEntity.REACH_DISTANCE);
+        this.getAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3D);
     }
 
-    //todo IHasInventoryに同梱しとけい
+    @Override
+    protected void registerData() {
+        super.registerData();
+        this.dataManager.register(AIMING, false);
+        this.dataManager.register(MOVING_STATE, ITameable.NONE);
+        this.dataManager.register(OWNER_ID, Optional.empty());
+    }
+
+    //読み込み時の読み書き系
 
     @Override
     public void writeAdditional(CompoundNBT compound) {
@@ -104,6 +124,12 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
             listnbt.add(itemstack.write(new CompoundNBT()));
         }
         compound.put("Inventory", listnbt);
+
+        if (this.getOwnerId().isPresent()) {
+            compound.putUniqueId("OwnerId", this.getOwnerId().get());
+        }
+
+        compound.putString("MovingState", getMovingState());
 
     }
 
@@ -119,6 +145,13 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                 this.inventory.setInventorySlotContents(i, itemstack);
             }
         }
+
+        if (compound.hasUniqueId("OwnerId")) {
+            this.setOwnerId(compound.getUniqueId("OwnerId"));
+            this.setContract(true);
+        }
+
+        setMovingState(compound.getString("MovingState"));
 
         sync();
 
@@ -144,22 +177,128 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         updateTextures();
     }
 
+    //バニラメソッズ
+
     @Override
-    public IMode getMode() {
-        return modeController.getMode();
+    public void livingTick() {
+        updateArmSwingProgress();
+        super.livingTick();
     }
 
+    //todo 以下数メソッドにはもうちと整理が必要か
+
+    //trueでアイテムが使用された、falseでされなかった
+    //trueならItemStack.interactWithEntity()が起こらず、またアイテム使用が必ずキャンセルされる
     @Override
-    protected void updateAITasks() {
-        super.updateAITasks();
-        modeController.tick();
+    protected boolean processInteract(PlayerEntity player, Hand hand) {
+        ItemStack stack = player.getHeldItem(hand);
+        if (player.isSecondaryUseActive()) {
+            return false;
+        }
+        if (stack.getItem() == Items.SUGAR) {
+            return tryChangeState(player, stack);
+        }
+        if (stack.getItem() == Items.CAKE) {
+            return tryContract(player, stack);
+        }
+        if (stack.getItem().isIn(ItemTags.WOOL)) {
+            return tryChangeModel(player);
+        }
+        if (stack.getItem().isIn(Tags.Items.DYES)) {
+            return tryColorChange(player);
+        }
+        if (!player.world.isRemote) {
+            openContainer(player, new StringTextComponent("test"));
+        }
+        return true;
     }
 
-    //以下数メソッドはインベントリ関連
-    //todo 未実装
+    public boolean tryChangeState(PlayerEntity player, ItemStack stack) {
+        if (!getContract()) {
+            return false;
+        }
+        if (player.world.isRemote) {
+            return true;
+        }
+        getNavigator().clearPath();
+        String state = this.getMovingState();
+        switch (state) {
+            case ITameable.WAIT:
+                setMovingState(ITameable.ESCORT);
+                break;
+            case ITameable.ESCORT:
+                setMovingState(ITameable.FREEDOM);
+                break;
+            case ITameable.FREEDOM:
+                setMovingState(ITameable.WAIT);
+                break;
+        }
+        return true;
+    }
+
+    public boolean tryContract(PlayerEntity player, ItemStack stack) {
+        if (getContract()) {
+            return false;
+        }
+        if (player.world.isRemote) {
+            return true;
+        }
+        getNavigator().clearPath();
+        setOwnerId(player.getUniqueID());
+        setMovingState(ITameable.ESCORT);
+        setContract(true);
+        if (!player.abilities.isCreativeMode) {
+            stack.shrink(1);
+            if (stack.isEmpty()) {
+                player.inventory.deleteStack(stack);
+            }
+        }
+        updateTextures();
+        sync();
+        return true;
+    }
+
+    public boolean tryChangeModel(PlayerEntity player) {
+        if (!getContract()) {
+            return false;
+        }
+        if (player.world.isRemote) {
+            return true;
+        }
+        TextureBox[] box = new TextureBox[2];
+        box[0] = box[1] = ModelManager.instance.getTextureBox(ModelManager.instance.getRandomTextureString(getRNG()));
+        setColor((byte) box[0].getRandomContractColor(rand));
+        setTextureBox(0, box[0]);
+        setTextureBox(1, box[1]);
+        updateTextures();
+        sync();
+        return true;
+    }
+
+    public boolean tryColorChange(PlayerEntity player) {
+        if (!getContract()) {
+            return false;
+        }
+        if (player.world.isRemote) {
+            return true;
+        }
+        setColor((byte) getTextureBox()[0].getRandomContractColor(getRNG()));
+        updateTextures();
+        sync();
+        return true;
+    }
+
+    //GUI開くやつ
+    public void openContainer(PlayerEntity player, ITextComponent text) {
+        player.openContainer(new SimpleNamedContainerProvider((windowId, inv, playerEntity) ->
+                new LittleMaidContainer(windowId, inv, this), text));
+    }
+
+    //インベントリ関連
+    //todo 一部未実装
 
     @Override
-    public Inventory getInventory() {
+    public IInventory getInventory() {
         return this.inventory;
     }
 
@@ -178,101 +317,68 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         return super.replaceItemInInventory(inventorySlot, itemStackIn);
     }
 
-    //todo 主従未実装
-
-    @Override
-    public void setOwner(Entity owner) {
-        this.ownerId = owner.getUniqueID();
-    }
+    //テイム関連
 
     @Override
     public Optional<Entity> getOwner() {
-        if (this.world instanceof ServerWorld && this.ownerId != null) {
-            return Optional.ofNullable(((ServerWorld) this.world).getEntityByUuid(this.ownerId));
+        Optional<UUID> optional = this.getOwnerId();
+        if (!optional.isPresent()) {
+            return Optional.empty();
+        }
+        UUID ownerId = optional.get();
+        PlayerEntity player = this.world.getPlayerByUuid(ownerId);
+        if (player != null) {
+            return Optional.of(player);
+        }
+        if (this.world instanceof ServerWorld) {
+            return Optional.ofNullable(((ServerWorld) this.world).getEntityByUuid(ownerId));
         }
         return Optional.empty();
     }
 
     @Override
-    public Optional<UUID> getOwnerId() {
-        return Optional.ofNullable(this.ownerId);
+    public void setOwnerId(UUID id) {
+        this.dataManager.set(OWNER_ID, Optional.of(id));
     }
-
-    //todo 以下数メソッドにはもうちと整理が必要か
 
     @Override
-    protected boolean processInteract(PlayerEntity player, Hand hand) {
-        ItemStack stack = player.getHeldItem(hand);
-        if (stack.getItem() == Items.CAKE) {
-            return tryContract(player, stack);
-        }
-        if (stack.getItem().isIn(ItemTags.WOOL)) {
-            return tryChangeModel(player);
-        }
-        if (stack.getItem().isIn(Tags.Items.DYES)) {
-            return tryColorChange(player);
-        }
-        if (!player.world.isRemote) {
-            openContainer(player, new StringTextComponent("test"));
-        }
-        return false;
+    public Optional<UUID> getOwnerId() {
+        return this.dataManager.get(OWNER_ID);
     }
 
-    public boolean tryContract(PlayerEntity player, ItemStack stack) {
-        if (getContract()) {
-            return false;
-        }
-        if (player.world.isRemote) {
-            return false;
-        }
-        setOwner(player);
-        setContract(true);
-        if (!player.abilities.isCreativeMode) {
-            stack.shrink(1);
-            if (stack.isEmpty()) {
-                player.inventory.deleteStack(stack);
-            }
-        }
-        updateTextures();
-        sync();
-        return false;
+    @Override
+    public String getMovingState() {
+        return this.dataManager.get(MOVING_STATE);
     }
 
-    public boolean tryChangeModel(PlayerEntity player) {
-        if (!getContract()) {
-            return false;
-        }
-        if (player.world.isRemote) {
-            return false;
-        }
-        TextureBox[] box = new TextureBox[2];
-        box[0] = box[1] = ModelManager.instance.getTextureBox(ModelManager.instance.getRandomTextureString(getRNG()));
-        setColor((byte) box[0].getRandomContractColor(rand));
-        setTextureBox(0, box[0]);
-        setTextureBox(1, box[1]);
-        updateTextures();
-        sync();
-        return false;
+    public void setMovingState(String string) {
+        this.dataManager.set(MOVING_STATE, string);
     }
 
-    public boolean tryColorChange(PlayerEntity player) {
-        if (!getContract()) {
-            return false;
-        }
-        if (player.world.isRemote) {
-            return false;
-        }
-        setColor((byte) getTextureBox()[0].getRandomContractColor(getRNG()));
-        updateTextures();
-        sync();
-        return false;
+    //モード機能
+
+    @Override
+    public IMode getMode() {
+        return modeController.getMode();
     }
 
-    //GUI開くやつ
-    public void openContainer(PlayerEntity player, ITextComponent text) {
-        player.openContainer(new SimpleNamedContainerProvider((windowId, inv, playerEntity) ->
-                new LittleMaidContainer(windowId, inv, this), text));
+    @Override
+    protected void updateAITasks() {
+        super.updateAITasks();
+        modeController.tick();
     }
+
+    @Override
+    public boolean getAimingBow() {
+        return this.dataManager.get(AIMING);
+    }
+
+    @Override
+    public void setAimingBow(boolean aiming) {
+        this.dataManager.set(AIMING, aiming);
+    }
+
+    //マルチモデル関連
 
     public void sync() {
         if (world.isRemote) {
@@ -323,7 +429,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
 
     @Override
     public boolean getContract() {
-        return comp.getContract();
+        return getOwnerId().isPresent();
     }
 
     @Override
@@ -341,4 +447,5 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     public IPacket<?> createSpawnPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
+
 }

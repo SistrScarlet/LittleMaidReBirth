@@ -15,7 +15,7 @@ public class ModeManager {
 
     public static ModeManager INSTANCE = new ModeManager();
 
-    private final Map<Class<?>, ModeItems> MODES = Maps.newHashMap();
+    public final Map<Class<?>, ModeItems> MODES = Maps.newHashMap();
 
     public void register(Class<?> mode, ModeItems items) {
         MODES.put(mode, items);
@@ -64,7 +64,6 @@ public class ModeManager {
         }
 
         public boolean contains(ItemStack stack) {
-            System.out.println(stack);
             Item item = stack.getItem();
             if (items.contains(item)) {
                 return true;
