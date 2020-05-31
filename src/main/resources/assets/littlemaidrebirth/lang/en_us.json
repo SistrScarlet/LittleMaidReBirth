@@ -1,0 +1,13 @@
+{
+  "entity.littlemaidrebirth.little_maid_mob": "LittleMaid",
+  "entity.littlemaidrebirth.little_maid_mob.InsideSkirt": "InsideSkirt",
+
+  "entity.littlemaidrebirth.little_maid_mob.None": "None",
+  "entity.littlemaidrebirth.little_maid_mob.Wait": "Wait",
+  "entity.littlemaidrebirth.little_maid_mob.Escort": "Escort",
+  "entity.littlemaidrebirth.little_maid_mob.Freedom": "Freedom",
+
+  "entity.littlemaidrebirth.little_maid_mob.Fencer": "Fencer",
+  "entity.littlemaidrebirth.little_maid_mob.Archer": "Archer",
+  "entity.littlemaidrebirth.little_maid_mob.Cooking": "Cooking"
+}

@@ -1,0 +1,13 @@
+{
+  "entity.littlemaidrebirth.little_maid_mob": "リトルメイド",
+  "entity.littlemaidrebirth.little_maid_mob.InsideSkirt": "InsideSkirt",
+
+  "entity.littlemaidrebirth.little_maid_mob.None": "からっぽ",
+  "entity.littlemaidrebirth.little_maid_mob.Wait": "待機",
+  "entity.littlemaidrebirth.little_maid_mob.Escort": "従者",
+  "entity.littlemaidrebirth.little_maid_mob.Freedom": "自由人",
+
+  "entity.littlemaidrebirth.little_maid_mob.Fencer": "剣士",
+  "entity.littlemaidrebirth.little_maid_mob.Archer": "射手",
+  "entity.littlemaidrebirth.little_maid_mob.Cooking": "料理人"
+}
