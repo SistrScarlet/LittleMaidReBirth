@@ -9,5 +9,7 @@
 
   "entity.littlemaidrebirth.little_maid_mob.Fencer": "剣士",
   "entity.littlemaidrebirth.little_maid_mob.Archer": "射手",
-  "entity.littlemaidrebirth.little_maid_mob.Cooking": "料理人"
+  "entity.littlemaidrebirth.little_maid_mob.Cooking": "お料理係",
+  "entity.littlemaidrebirth.little_maid_mob.Ripper": "毛狩り隊",
+  "entity.littlemaidrebirth.little_maid_mob.Torcher": "照明係"
 }

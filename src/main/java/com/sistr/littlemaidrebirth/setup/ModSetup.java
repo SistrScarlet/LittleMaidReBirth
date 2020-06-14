@@ -46,7 +46,7 @@ public class ModSetup {
 
             //Biomeタイプが一致した場合にスポーン設定を行う
             for (BiomeDictionary.Type biomeType : spawnBiomeList) {
-                if (BiomeDictionary.hasType(biome, biomeType)) {
+                if (BiomeDictionary.hasType(biome, biomeType) && BiomeDictionary.hasType(biome, BiomeDictionary.Type.OVERWORLD)) {
                     isSpawn = true;
                     break;
                 }

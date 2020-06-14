@@ -12,7 +12,6 @@ import net.minecraft.nbt.ListNBT;
 
 import java.util.List;
 
-//write/readでPlayerInventoryを読み書きできる
 public class LittleMaidInventory implements IHasInventory {
     private final LivingEntity owner;
     private final Inventory inventory = new Inventory(18);
@@ -27,33 +26,34 @@ public class LittleMaidInventory implements IHasInventory {
     }
 
     @Override
-    public void writeInventories(CompoundNBT nbt) {
+    public void writeInventory(CompoundNBT nbt) {
         ListNBT listnbt = new ListNBT();
-        for(int i = 0; i < this.inventory.getSizeInventory(); ++i) {
-            if (!this.inventory.getStackInSlot(i).isEmpty()) {
+
+        for(int index = 0; index < this.inventory.getSizeInventory(); ++index) {
+            if (!this.inventory.getStackInSlot(index).isEmpty()) {
                 CompoundNBT compoundnbt = new CompoundNBT();
-                compoundnbt.putByte("Slot", (byte)i);
-                this.inventory.getStackInSlot(i).write(compoundnbt);
+                compoundnbt.putByte("Slot", (byte)index);
+                this.inventory.getStackInSlot(index).write(compoundnbt);
                 listnbt.add(compoundnbt);
             }
         }
 
         List<ItemStack> armorInventory = Lists.newArrayList(this.owner.getArmorInventoryList());
-        for(int j = 0; j < armorInventory.size(); ++j) {
-            if (!armorInventory.get(j).isEmpty()) {
+        for(int index = 0; index < armorInventory.size(); ++index) {
+            if (!armorInventory.get(index).isEmpty()) {
                 CompoundNBT compoundnbt1 = new CompoundNBT();
-                compoundnbt1.putByte("Slot", (byte)(j + 100));
-                armorInventory.get(j).write(compoundnbt1);
+                compoundnbt1.putByte("Slot", (byte)(index + 100));
+                armorInventory.get(index).write(compoundnbt1);
                 listnbt.add(compoundnbt1);
             }
         }
 
         List<ItemStack> offHandInventory = Lists.newArrayList(this.owner.getHeldItemOffhand());
-        for(int k = 0; k < offHandInventory.size(); ++k) {
-            if (!offHandInventory.get(k).isEmpty()) {
+        for(int index = 0; index < offHandInventory.size(); ++index) {
+            if (!offHandInventory.get(index).isEmpty()) {
                 CompoundNBT compoundnbt2 = new CompoundNBT();
-                compoundnbt2.putByte("Slot", (byte)(k + 150));
-                offHandInventory.get(k).write(compoundnbt2);
+                compoundnbt2.putByte("Slot", (byte)(index + 150));
+                offHandInventory.get(index).write(compoundnbt2);
                 listnbt.add(compoundnbt2);
             }
         }
@@ -61,18 +61,18 @@ public class LittleMaidInventory implements IHasInventory {
     }
 
     @Override
-    public void readInventories(CompoundNBT nbt) {
+    public void readInventory(CompoundNBT nbt) {
         ListNBT listNBT = nbt.getList("Inventory", 10);
         for(int i = 0; i < listNBT.size(); ++i) {
             CompoundNBT compoundnbt = listNBT.getCompound(i);
             int slot = compoundnbt.getByte("Slot") & 255;
             ItemStack itemstack = ItemStack.read(compoundnbt);
             if (!itemstack.isEmpty()) {
-                if (slot >= 0 && slot < this.inventory.getSizeInventory()) {
+                if (slot < this.inventory.getSizeInventory()) {
                     this.inventory.setInventorySlotContents(slot, itemstack);
                 } else if (slot < 100) {
                     this.owner.entityDropItem(itemstack);
-                } else if (slot >= 100 && slot < 4 + 100) {
+                } else if (slot < 4 + 100) {
                     this.owner.setItemStackToSlot(EquipmentSlotType
                             .fromSlotTypeAndIndex(EquipmentSlotType.Group.ARMOR, slot - 100), itemstack);
                 } else if (slot >= 150 && slot < 1 + 150) {

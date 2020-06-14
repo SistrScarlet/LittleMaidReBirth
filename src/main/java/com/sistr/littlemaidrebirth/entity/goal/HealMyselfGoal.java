@@ -46,7 +46,7 @@ public class HealMyselfGoal extends Goal {
 
     @Override
     public void tick() {
-        if (cool++ < 1) {
+        if (cool++ < 2) {
             return;
         }
         cool = 0;

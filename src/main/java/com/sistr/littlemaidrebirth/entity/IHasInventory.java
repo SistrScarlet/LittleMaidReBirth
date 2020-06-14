@@ -7,8 +7,8 @@ public interface IHasInventory {
 
     IInventory getInventory();
 
-    void writeInventories(CompoundNBT nbt);
+    void writeInventory(CompoundNBT nbt);
 
-    void readInventories(CompoundNBT nbt);
+    void readInventory(CompoundNBT nbt);
 
 }

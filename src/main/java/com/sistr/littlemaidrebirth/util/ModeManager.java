@@ -11,6 +11,7 @@ import net.minecraft.util.ResourceLocation;
 import java.util.Map;
 import java.util.Set;
 
+//todo モード切替判定用のインターフェースとデフォルト実装を用意してここではそれのインスタンスを保持する
 public class ModeManager {
 
     public static ModeManager INSTANCE = new ModeManager();
@@ -27,7 +28,7 @@ public class ModeManager {
         return modeItems.contains(stack);
     }
 
-    //除外判定はまた今度(必要性薄そうだし…)
+    //todo 除外判定
     public static class ModeItems {
         public final Set<String> itemNames = Sets.newHashSet();
         public final Set<String> excludeItemNames = Sets.newHashSet();
@@ -37,6 +38,8 @@ public class ModeManager {
         public final Set<Class<?>> excludeItemClasses = Sets.newHashSet();
         public final Set<Tag<Item>> itemTags = Sets.newHashSet();
         public final Set<Tag<Item>> excludeItemTags = Sets.newHashSet();
+        public final Set<CheckModeItem> checkModeItems = Sets.newHashSet();
+        public final Set<CheckModeItem> excludeCheckModeItems = Sets.newHashSet();
 
         public ModeItems add(String name) {
             itemNames.add(name);
@@ -68,7 +71,17 @@ public class ModeManager {
             return this;
         }
 
+        public ModeItems add(CheckModeItem checkModeItem) {
+            checkModeItems.add(checkModeItem);
+            return this;
+        }
+
         public boolean contains(ItemStack stack) {
+            for (CheckModeItem checkModeItem : checkModeItems) {
+                if (checkModeItem.checkModeItem(stack)) {
+                    return true;
+                }
+            }
             Item item = stack.getItem();
             if (items.contains(item)) {
                 return true;
@@ -98,6 +111,10 @@ public class ModeManager {
             return isContainsSuperLoop(superItem);
         }
 
+    }
+
+    public interface CheckModeItem {
+        boolean checkModeItem(ItemStack stack);
     }
 
 }

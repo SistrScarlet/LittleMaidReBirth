@@ -80,7 +80,7 @@ public class EscortGoal extends Goal {
             this.timeToRecalcPath = 10;
             if (!this.escort.getLeashed() && !this.escort.isPassenger()) {
                 double distanceSq = this.escort.getDistanceSq(this.owner);
-                if (distanceSq >= 16 * 16) {
+                if (distanceSq > 12 * 12) {
                     this.tryTeleport();
                 } else {
                     this.navigator.tryMoveToEntityLiving(this.owner, 6 * 6 < distanceSq ? speed + 0.5 : speed);

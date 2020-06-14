@@ -1,5 +1,6 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
+//todo read/write アイテム交換
 //Goal互換
 public interface IMode {
 

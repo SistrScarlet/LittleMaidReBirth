@@ -9,5 +9,7 @@
 
   "entity.littlemaidrebirth.little_maid_mob.Fencer": "Fencer",
   "entity.littlemaidrebirth.little_maid_mob.Archer": "Archer",
-  "entity.littlemaidrebirth.little_maid_mob.Cooking": "Cooking"
+  "entity.littlemaidrebirth.little_maid_mob.Cooking": "Cooking",
+  "entity.littlemaidrebirth.little_maid_mob.Ripper": "Ripper",
+  "entity.littlemaidrebirth.little_maid_mob.Torcher": "Torcher"
 }

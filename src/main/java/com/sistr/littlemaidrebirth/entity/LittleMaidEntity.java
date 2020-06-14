@@ -1,5 +1,6 @@
 package com.sistr.littlemaidrebirth.entity;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.sistr.littlemaidrebirth.LittleMaidInventory;
 import com.sistr.littlemaidrebirth.entity.goal.EscortGoal;
@@ -8,9 +9,7 @@ import com.sistr.littlemaidrebirth.entity.goal.HealMyselfGoal;
 import com.sistr.littlemaidrebirth.entity.goal.WaitGoal;
 import com.sistr.littlemaidrebirth.entity.mode.*;
 import com.sistr.littlemaidrebirth.setup.Registration;
-import net.blacklab.lmr.entity.maidmodel.IHasMultiModel;
-import net.blacklab.lmr.entity.maidmodel.ModelMultiBase;
-import net.blacklab.lmr.entity.maidmodel.TextureBox;
+import net.blacklab.lmr.entity.maidmodel.*;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.monster.CreeperEntity;
@@ -33,8 +32,10 @@ import net.minecraft.util.DamageSource;
 import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvents;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.util.FakePlayer;
@@ -51,25 +52,32 @@ import static net.sistr.lmml.util.ConvertColor.convertDyeColor;
 
 //メイドさん本体
 //継承しないのが吉
-//todo 給料、ストライキ、啼くように、このクラスの行数を500まで減らす
+//todo 啼くように、このクラスの行数を500まで減らす
 public class LittleMaidEntity extends CreatureEntity implements IEntityAdditionalSpawnData, IHasInventory, ITameable,
-        IHasMode, IArcher, IHasFakePlayer, IHasMultiModel {
-    //変数群 カオス
+        INeedSalary, IHasMode, IArcher, IHasFakePlayer, IHasMultiModel {
+    //変数群。カオス
     private static final DataParameter<String> MOVING_STATE = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.STRING);
     private static final DataParameter<Optional<UUID>> OWNER_ID = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.OPTIONAL_UNIQUE_ID);
     private static final DataParameter<Boolean> AIMING = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.BOOLEAN);
-    private final ITameable tameable = new DefaultTameable(this, this.dataManager, MOVING_STATE, OWNER_ID);
-    //todo モードの追加方法を変えるべし
-    private final DefaultModeController modeController = new DefaultModeController(this,
-            Sets.newHashSet(
-                    new FencerMode(this, 1.25D, false),
-                    new ArcherMode(this, this, 0.1F, 10, 16),
-                    new CookingMode(this, this)));
     private final IHasInventory littleMaidInventory = new LittleMaidInventory(this);
-    private final LittleMaidFakePlayer fakePlayer = new LittleMaidFakePlayer(this);
+    //todo お給料機能とテイム機能一緒にした方がよさげ
+    private final ITameable tameable = new DefaultTameable(this, this.dataManager, MOVING_STATE, OWNER_ID);
+    private final TickTimeBaseNeedSalary needSalary = new TickTimeBaseNeedSalary(this, this,
+            7, Lists.newArrayList(Items.SUGAR));
+    //todo モードの追加方法を変えるべし
+    private final DefaultModeController modeController = new DefaultModeController(this, this,
+            Sets.newHashSet(
+                    new FencerMode(this, this, 1D, true),
+                    new ArcherMode(this, this, this,
+                            0.1F, 10, 16),
+                    new CookingMode(this, this),
+                    new RipperMode(this),
+                    new TorcherMode(this, this, this)));
+    private final LittleMaidFakePlayer fakePlayer = new LittleMaidFakePlayer(this, this);
     private final DefaultMultiModel multiModel = new DefaultMultiModel(this,
             ModelManager.instance.getDefaultTexture(this),
             ModelManager.instance.getDefaultTexture(this));
+    private final IModelCaps caps = new LivingEntityCaps(this);
 
     //コンストラクタ
     public LittleMaidEntity(EntityType<LittleMaidEntity> type, World worldIn) {
@@ -100,8 +108,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         });
         this.goalSelector.addGoal(30, new LookAtGoal(this, PlayerEntity.class, 8.0F));
         this.goalSelector.addGoal(30, new LookRandomlyGoal(this));
-        //this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
-        //this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
+        //todo 主への攻撃者絶対殺すマン
         this.targetSelector.addGoal(3, new HurtByTargetGoal(this));
         this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, MobEntity.class,
                 5, true, false, entity ->
@@ -131,26 +138,34 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     @Override
     public void writeAdditional(CompoundNBT compound) {
         super.writeAdditional(compound);
-        multiModel.write(compound);
 
-        this.writeInventories(compound);
+        this.writeInventory(compound);
 
         this.writeTameable(compound);
+
+        this.writeSalary(compound);
+
+        multiModel.write(compound);
 
     }
 
     @Override
     public void readAdditional(CompoundNBT compound) {
         super.readAdditional(compound);
-        multiModel.read(compound);
 
-        this.readInventories(compound);
+        this.readInventory(compound);
 
         this.readTameable(compound);
+
+        this.readSalary(compound);
+
+        multiModel.read(compound);
 
         sync();
 
     }
+
+    //todo hasMultiModelに内包するか？
 
     //鯖
     @Override
@@ -185,9 +200,17 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     //バニラメソッズ
 
     @Override
+    public void tick() {
+        super.tick();
+        //FakePlayer用。このフィールドLivingEntityにもあるくせにPlayerEntityでしか使われてねえ…
+        ++this.ticksSinceLastSwing;
+    }
+
+    @Override
     public void livingTick() {
         updateArmSwingProgress();
         super.livingTick();
+        if (getContract()) needSalary.tick();
         //アイテム回収処理
         fakePlayer.livingTick();
     }
@@ -197,6 +220,35 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         super.onDeath(cause);
         tameable.onDeath(cause);
         fakePlayer.onDeath(cause);
+    }
+
+    //todo hasMultiModelに内包するか？
+    @Override
+    public EntitySize getSize(Pose poseIn) {
+        float width = getWidth();
+        float height = getHeight();
+        ModelMultiBase modelMultiBase = this.getMultiModels()[0];
+        if (modelMultiBase != null) {
+            width = modelMultiBase.getWidth(caps);
+            height = modelMultiBase.getHeight(caps);
+        }
+        return EntitySize.flexible(width, height);
+    }
+
+    //canSpawnとかでも使われる
+    @Override
+    public float getBlockPathWeight(BlockPos pos, IWorldReader worldIn) {
+        return worldIn.getBlockState(pos.down()).getMaterial().isOpaque() ? 10.0F : worldIn.getBrightness(pos) - 0.5F;
+    }
+
+    @Override
+    public double getYOffset() {
+        return this.multiModel.getMultiModels()[0].getyOffset(caps);
+    }
+
+    @Override
+    public double getMountedYOffset() {
+        return this.multiModel.getMultiModels()[0].getMountedYOffset(caps);
     }
 
     @Override
@@ -217,7 +269,8 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
         Entity attacker = source.getTrueSource();
-        if (attacker != null && isFriend(attacker)) {
+        //Friend及び、自身と同じUUIDの者(自身のFakePlayer)を除外
+        if (attacker != null && (isFriend(attacker) || attacker.getUniqueID().equals(this.getUniqueID()))) {
             return false;
         }
         return super.attackEntityFrom(source, amount);
@@ -233,14 +286,34 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         if (player.isSecondaryUseActive()) {
             return false;
         }
+        if (isStrike()) {
+            if (stack.getItem() == Items.CAKE) {
+                this.world.addParticle(ParticleTypes.HEART,
+                        getPosX(), getPosY() + getEyeHeight(), getPosZ(),
+                        0, this.rand.nextGaussian() * 0.02D, 0);
+                while (receiveSalary(1)) ;
+                if (!player.abilities.isCreativeMode) {
+                    stack.shrink(1);
+                    if (stack.isEmpty()) {
+                        player.inventory.deleteStack(stack);
+                    }
+                }
+                return true;
+            }
+            for (int i = 0; i < 5; i++) {
+                this.world.addParticle(ParticleTypes.SMOKE,
+                        this.getPosX() + (0.5F - rand.nextFloat()) * 0.2F,
+                        this.getPosYEye() + (0.5F - rand.nextFloat()) * 0.2F,
+                        this.getPosZ() + (0.5F - rand.nextFloat()) * 0.2F,
+                        0, 0.1, 0);
+            }
+            return false;
+        }
         if (stack.getItem() == Items.SUGAR) {
             return tryChangeState(player, stack);
         }
         if (stack.getItem() == Items.CAKE) {
             return tryContract(player, stack);
-        }
-        if (stack.getItem().isIn(ItemTags.WOOL)) {
-            return tryChangeModel(player);
         }
         if (stack.getItem().isIn(Tags.Items.DYES)) {
             return tryColorChange(player, stack);
@@ -297,6 +370,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         if (player.world.isRemote) {
             return true;
         }
+        while (receiveSalary(1)) ;//ここに給料処理が混じってるのがムカつく
         getNavigator().clearPath();
         setOwnerId(player.getUniqueID());
         setMovingState(ITameable.ESCORT);
@@ -307,23 +381,6 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                 player.inventory.deleteStack(stack);
             }
         }
-        updateTextures();
-        sync();
-        return true;
-    }
-
-    public boolean tryChangeModel(PlayerEntity player) {
-        if (!getContract()) {
-            return false;
-        }
-        if (player.world.isRemote) {
-            return true;
-        }
-        TextureBox[] box = new TextureBox[2];
-        box[0] = box[1] = ModelManager.instance.getTextureBox(ModelManager.instance.getRandomTextureString(getRNG()));
-        setColor((byte) box[0].getRandomContractColor(rand));
-        setTextureBox(0, box[0]);
-        setTextureBox(1, box[1]);
         updateTextures();
         sync();
         return true;
@@ -356,6 +413,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     }
 
     //GUI開くやつ
+    //todo 開いている間動かないようにする
     public void openContainer(PlayerEntity player) {
         ITextComponent movingState = new TranslationTextComponent(
                 getType().getTranslationKey() + "." + getMovingState());
@@ -367,7 +425,6 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         }
         player.openContainer(new SimpleNamedContainerProvider((windowId, inv, playerEntity) ->
                 new LittleMaidContainer(windowId, inv, this), movingState));
-        //todo モード名表示 移動状態はアイコンで表記とかのがいいかね
     }
 
     //インベントリ関連
@@ -378,18 +435,18 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     }
 
     @Override
-    public void writeInventories(CompoundNBT nbt) {
-        this.littleMaidInventory.writeInventories(nbt);
+    public void writeInventory(CompoundNBT nbt) {
+        this.littleMaidInventory.writeInventory(nbt);
     }
 
     @Override
-    public void readInventories(CompoundNBT nbt) {
-        this.littleMaidInventory.readInventories(nbt);
+    public void readInventory(CompoundNBT nbt) {
+        this.littleMaidInventory.readInventory(nbt);
     }
 
     @Override
     public boolean replaceItemInInventory(int inventorySlot, ItemStack itemStackIn) {
-        IInventory inventory = this.littleMaidInventory.getInventory();
+        IInventory inventory = this.getInventory();
         if (0 <= inventorySlot && inventorySlot < inventory.getSizeInventory()) {
             inventory.setInventorySlotContents(inventorySlot, itemStackIn);
             return true;
@@ -438,6 +495,43 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         return tameable.isFriend(entity);
     }
 
+    //お給料
+
+    @Override
+    public boolean receiveSalary(int num) {
+        return needSalary.receiveSalary(num);
+    }
+
+    @Override
+    public boolean consumeSalary(int num) {
+        return needSalary.consumeSalary(num);
+    }
+
+    @Override
+    public int getSalary() {
+        return needSalary.getSalary();
+    }
+
+    @Override
+    public boolean isSalary(ItemStack stack) {
+        return needSalary.isSalary(stack);
+    }
+
+    @Override
+    public boolean isStrike() {
+        return needSalary.isStrike();
+    }
+
+    @Override
+    public void writeSalary(CompoundNBT nbt) {
+        needSalary.writeSalary(nbt);
+    }
+
+    @Override
+    public void readSalary(CompoundNBT nbt) {
+        needSalary.readSalary(nbt);
+    }
+
     //モード機能
 
     @Override
@@ -454,7 +548,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
 
     @Override
     public boolean getAimingBow() {
-        return this.dataManager.get(AIMING);
+        return this.dataManager.get(AIMING) && this.isHandActive();
     }
 
     @Override
@@ -481,10 +575,9 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
 
     //マルチモデル関連
 
+    //このメソッドを発動させたサイドから逆サイドに同期する
     public void sync() {
-        if (world.isRemote) {
-            return;
-        }
+        recalculateSize();
         multiModel.sync();
     }
 
@@ -541,6 +634,16 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     @Override
     public TextureBox[] getTextureBox() {
         return multiModel.getTextureBox();
+    }
+
+    @Override
+    public boolean canRenderArmor(int index) {
+        return multiModel.canRenderArmor(index);
+    }
+
+    @Override
+    public void setCanRenderArmor(int index, boolean canRender) {
+        multiModel.setCanRenderArmor(index, canRender);
     }
 
     //オーバーライドしなくても動くが、IEntityAdditionalSpawnDataが機能しない

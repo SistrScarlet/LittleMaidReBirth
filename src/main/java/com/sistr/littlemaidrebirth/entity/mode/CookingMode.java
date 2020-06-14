@@ -220,43 +220,54 @@ public class CookingMode implements IMode {
 
     public Optional<BlockPos> findFurnacePos() {
         BlockPos ownerPos = owner.getPosition();
+        //垂直方向に5ブロック調査
         for (int l = 0; l < 5; l++) {
             BlockPos center;
+            //原点高さ、一個上、一個下、二個上、二個下の順にcenterをズラす
             if (l % 2 == 0) {
                 center = ownerPos.down(MathHelper.floor(l / 2F + 0.5F));
             } else {
                 center = ownerPos.up(MathHelper.floor(l / 2F + 0.5F));
             }
-            Set<BlockPos> nothingPosSet = Sets.newHashSet();
-            Set<BlockPos> prevNothingPosSet = Sets.newHashSet(center);
+            Set<BlockPos> allSearched = Sets.newHashSet();
+            Set<BlockPos> prevSearched = Sets.newHashSet(center);
+            //水平方向に16ブロック調査
             for (int k = 0; k < 16; k++) {
-                Set<BlockPos> nowNothingPosSet = Sets.newHashSet();
-                for (BlockPos pos : prevNothingPosSet) {
+                Set<BlockPos> nowSearched = Sets.newHashSet();
+                //前回調査地点を起点にする
+                for (BlockPos pos : prevSearched) {
+                    //起点に隣接する水平四ブロックを調査
                     for (int i = 0; i < 4; i++) {
                         Direction d = Direction.byHorizontalIndex(i);
-                        BlockPos tempPos = pos.offset(d);
-                        if (nothingPosSet.contains(tempPos)) {
+                        BlockPos checkPos = pos.offset(d);
+                        //既に調査済みの地点は除外
+                        if (allSearched.contains(checkPos)) {
                             continue;
                         }
-                        if (!checkFurnace(tempPos)
-                                || !canUseFurnace((AbstractFurnaceTileEntity) owner.world.getTileEntity(tempPos))) {
-                            nowNothingPosSet.add(tempPos);
+                        //使用不能なかまどは除外し、次回検索時の起点に加える
+                        if (!checkFurnace(checkPos)
+                                || !canUseFurnace((AbstractFurnaceTileEntity) owner.world.getTileEntity(checkPos))) {
+                            nowSearched.add(checkPos);
                             continue;
                         }
+                        //見えないとこのブロックは除外し、これを起点とした調査も打ち切る
                         BlockRayTraceResult result = owner.world.rayTraceBlocks(new RayTraceContext(
                                 owner.getEyePosition(1F),
-                                new Vec3d(tempPos.getX() + 0.5F, tempPos.getY() + 0.5F, tempPos.getZ() + 0.5F),
+                                new Vec3d(checkPos.getX() + 0.5F, checkPos.getY() + 0.5F, checkPos.getZ() + 0.5F),
                                 RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, owner));
-                        if (result.getType() != RayTraceResult.Type.MISS && !result.getPos().equals(tempPos)) {
-                            nowNothingPosSet.add(tempPos);
+                        if (result.getType() != RayTraceResult.Type.MISS && !result.getPos().equals(checkPos)) {
+                            allSearched.add(checkPos);
+                            nowSearched.remove(checkPos);
                             continue;
                         }
-                        return Optional.of(tempPos);
+                        //除外されなければ値を返す
+                        return Optional.of(checkPos);
                     }
                 }
-                nothingPosSet.addAll(nowNothingPosSet);
-                prevNothingPosSet.clear();
-                prevNothingPosSet.addAll(nowNothingPosSet);
+                //次回調査用
+                allSearched.addAll(nowSearched);
+                prevSearched.clear();
+                prevSearched.addAll(nowSearched);
             }
         }
         return Optional.empty();

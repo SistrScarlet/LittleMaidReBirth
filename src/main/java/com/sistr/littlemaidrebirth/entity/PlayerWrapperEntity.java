@@ -1,8 +1,12 @@
 package com.sistr.littlemaidrebirth.entity;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.advancements.PlayerAdvancements;
+import net.minecraft.entity.EntitySize;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.Pose;
 import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.DamageSource;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.util.FakePlayer;
@@ -32,4 +36,21 @@ public class PlayerWrapperEntity extends FakePlayer {
         super.onDeath(source);
         spawnDrops(source);
     }
+
+    @Override
+    public boolean attackEntityFrom(DamageSource source, float amount) {
+        origin.attackEntityFrom(source, amount);
+        return super.attackEntityFrom(source, amount);
+    }
+
+    @Override
+    public EntitySize getSize(Pose poseIn) {
+        return origin.getSize(poseIn);
+    }
+
+    @Override
+    public float getStandingEyeHeight(Pose poseIn, EntitySize sizeIn) {
+        return sizeIn.height * 0.85F;
+    }
+
 }

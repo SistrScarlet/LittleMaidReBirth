@@ -1,29 +1,57 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
+import com.sistr.littlemaidrebirth.entity.IHasFakePlayer;
 import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.goal.MeleeAttackGoal;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.SwordItem;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.common.util.FakePlayer;
 
-//実質MeleeAttackGoalのラッパー
+//基本的にはMeleeAttackGoalのラッパー
+//ただしFakePlayerに殴らせるようにしている
+//…要るかこれ？
 public class FencerMode implements IMode {
     protected final CreatureEntity owner;
+    protected final IHasFakePlayer hasFakePlayer;
     protected final MeleeAttackGoal melee;
 
-    public FencerMode(CreatureEntity owner, double speed, boolean memory) {
+    public FencerMode(CreatureEntity owner, IHasFakePlayer hasFakePlayer, double speed, boolean memory) {
         this.owner = owner;
+        this.hasFakePlayer = hasFakePlayer;
         this.melee = new MeleeAttackGoal(owner, speed, memory) {
+
             @Override
-            public void tick() {
-                attackTick = Math.min(attackTick, (int) (1D / owner.getAttribute(SharedMonsterAttributes.ATTACK_SPEED).getValue() * 20D));
-                super.tick();
+            protected void checkAndPerformAttack(LivingEntity enemy, double distToEnemySqr) {
+                double reachSq = this.getAttackReachSqr(enemy);
+                if (reachSq < distToEnemySqr || 0 < this.attackTick || !attacker.canEntityBeSeen(enemy)) {
+                    return;
+                }
+                this.attacker.swingArm(Hand.MAIN_HAND);
+
+                hasFakePlayer.syncToFakePlayer();
+                FakePlayer fake = hasFakePlayer.getFakePlayer();
+                fake.attackTargetEntityWithCurrentItem(enemy);
+                if (enemy instanceof MobEntity && ((MobEntity) enemy).getAttackTarget() == fake) {
+                    ((MobEntity) enemy).setAttackTarget(attacker);
+                }
+                if (enemy.getRevengeTarget() == fake) {
+                    enemy.setRevengeTarget(attacker);
+                }
+                this.attackTick = MathHelper.ceil(fake.getCooldownPeriod() + 0.5F);
+                hasFakePlayer.syncToOrigin();
+
             }
 
             @Override
             protected double getAttackReachSqr(LivingEntity attackTarget) {
-                return 2 * 2;
+                double reach = owner.getAttribute(PlayerEntity.REACH_DISTANCE).getValue() - 0.5D;
+                return reach * reach;
             }
         };
     }

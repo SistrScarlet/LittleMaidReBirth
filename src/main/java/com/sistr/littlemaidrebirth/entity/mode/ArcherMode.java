@@ -1,33 +1,43 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.sistr.littlemaidrebirth.entity.IArcher;
+import com.sistr.littlemaidrebirth.entity.IHasFakePlayer;
 import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.AbstractArrowEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.item.BowItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.SoundEvents;
+import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraftforge.common.util.FakePlayer;
+
+import java.util.List;
 
 public class ArcherMode implements IMode {
     private final CreatureEntity owner;
     private final IArcher archer;
     private final double moveSpeedAmp;
+    private final IHasFakePlayer hasFakePlayer;
     private int attackCooldown;
     private final float maxAttackDistance;
-    private int attackTime = -1;
     private int seeTime;
     private boolean strafingClockwise;
     private boolean strafingBackwards;
     private int strafingTime = -1;
 
-    public ArcherMode(CreatureEntity owner, IArcher archer, double moveSpeedAmpIn, int attackCooldownIn, float maxAttackDistanceIn) {
+    public ArcherMode(CreatureEntity owner, IArcher archer, IHasFakePlayer hasFakePlayer, double moveSpeedAmpIn, int attackCooldownIn, float maxAttackDistanceIn) {
         this.owner = owner;
         this.archer = archer;
+        this.hasFakePlayer = hasFakePlayer;
         this.moveSpeedAmp = moveSpeedAmpIn;
         this.attackCooldown = attackCooldownIn;
         this.maxAttackDistance = maxAttackDistanceIn * maxAttackDistanceIn;
@@ -39,15 +49,11 @@ public class ArcherMode implements IMode {
     }
 
     public boolean shouldExecute() {
-        return this.owner.getAttackTarget() != null && this.hasBow();
-    }
-
-    protected boolean hasBow() {
-        return ModeManager.INSTANCE.containModeItem(this, this.owner.getHeldItemMainhand());
+        return this.owner.getAttackTarget() != null;
     }
 
     public boolean shouldContinueExecuting() {
-        return this.shouldExecute() || !this.owner.getNavigator().noPath() && this.hasBow();
+        return this.shouldExecute() || !this.owner.getNavigator().noPath();
     }
 
     public void startExecuting() {
@@ -108,51 +114,64 @@ public class ArcherMode implements IMode {
         }
 
         if (!this.owner.isHandActive()) {
-            if (--this.attackTime <= 0 && this.seeTime >= -60) {
-                this.owner.setActiveHand(Hand.MAIN_HAND);
+            if (this.seeTime >= -60) {
                 this.archer.setAimingBow(true);
+
+                hasFakePlayer.syncToFakePlayer();
+                FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+                ItemStack stack = fakePlayer.getHeldItemMainhand();
+                stack.useItemRightClick(owner.world, fakePlayer, Hand.MAIN_HAND);
+                hasFakePlayer.syncToOrigin();
             }
             return;
         }
 
         if (!canSee) {
             if (this.seeTime < -60) {
-                this.owner.resetActiveHand();
                 this.archer.setAimingBow(false);
+
+                hasFakePlayer.syncToFakePlayer();
+                FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+                fakePlayer.resetActiveHand();
+                hasFakePlayer.syncToOrigin();
             }
             return;
         }
 
         int useCount = this.owner.getItemInUseMaxCount();
         if (20 <= useCount) {
-            this.owner.resetActiveHand();
+            //簡易誤射チェック、射線にターゲット以外が居る場合撃たない、まだ甘い
+            float distance = MathHelper.sqrt(distanceSq);
+            EntityRayTraceResult result = ProjectileHelper.rayTraceEntities(this.owner,
+                    this.owner.getEyePosition(1F), target.getEyePosition(1F),
+                    this.owner.getBoundingBox().grow(distance), entity ->
+                    !entity.isSpectator() && entity.isAlive() && entity.canBeCollidedWith(), distanceSq);
+            if (result != null && result.getType() == RayTraceResult.Type.ENTITY) {
+                Entity entity = result.getEntity();
+                if (entity != target) {
+                    return;
+                }
+            }
+
             this.archer.setAimingBow(false);
-            attackEntityWithRangedAttack(target, BowItem.getArrowVelocity(useCount));
-            this.attackTime = this.attackCooldown;
+
+            hasFakePlayer.syncToFakePlayer();
+            FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+            fakePlayer.stopActiveHand();
+            hasFakePlayer.syncToOrigin();
         }
 
-    }
-
-    public void attackEntityWithRangedAttack(LivingEntity target, float distanceFactor) {
-        ItemStack itemstack = this.owner.findAmmo(this.owner.getHeldItem(ProjectileHelper.getHandWith(this.owner, Items.BOW)));
-        AbstractArrowEntity abstractarrowentity = ProjectileHelper.fireArrow(this.owner, itemstack, distanceFactor);
-        if (this.owner.getHeldItemMainhand().getItem() instanceof net.minecraft.item.BowItem)
-            abstractarrowentity = ((net.minecraft.item.BowItem) this.owner.getHeldItemMainhand().getItem()).customeArrow(abstractarrowentity);
-        double x = target.getPosX() - this.owner.getPosX();
-        double y = target.getPosYHeight(1D / 3D) - abstractarrowentity.getPosY();
-        double z = target.getPosZ() - this.owner.getPosZ();
-        double horDist = MathHelper.sqrt(x * x + z * z);
-        abstractarrowentity.shoot(x, y + horDist * 0.2D, z, 1.6F, 14 - this.owner.world.getDifficulty().getId() * 4);
-        this.owner.playSound(SoundEvents.ENTITY_SKELETON_SHOOT, 1.0F, 1.0F / (this.owner.getRNG().nextFloat() * 0.4F + 0.8F));
-        this.owner.world.addEntity(abstractarrowentity);
     }
 
     public void resetTask() {
         this.owner.setAggroed(false);
         this.seeTime = 0;
-        this.attackTime = -1;
-        this.owner.resetActiveHand();
         this.archer.setAimingBow(false);
+
+        hasFakePlayer.syncToFakePlayer();
+        FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+        fakePlayer.resetActiveHand();
+        hasFakePlayer.syncToOrigin();
     }
 
     @Override
