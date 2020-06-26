@@ -27,8 +27,14 @@ public class PlayerWrapperEntity extends FakePlayer {
     @Override
     protected void registerAttributes() {
         super.registerAttributes();
-        this.getAttributes().registerAttribute(SharedMonsterAttributes.FOLLOW_RANGE);
-        this.getAttributes().registerAttribute(SharedMonsterAttributes.ATTACK_KNOCKBACK);
+        //Material MasterというModでATTACK_KNOCKBACKの属性値追加を生成時に行っているための回避策
+        //EntityConstructingのタイミングが後に変わった場合は不要になると思う
+        if (this.getAttribute(SharedMonsterAttributes.FOLLOW_RANGE) == null) {
+            this.getAttributes().registerAttribute(SharedMonsterAttributes.FOLLOW_RANGE);
+        }
+        if (this.getAttribute(SharedMonsterAttributes.ATTACK_KNOCKBACK) == null) {
+            this.getAttributes().registerAttribute(SharedMonsterAttributes.ATTACK_KNOCKBACK);
+        }
     }
 
     @Override
