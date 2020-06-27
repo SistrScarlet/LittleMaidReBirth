@@ -4,7 +4,7 @@ import com.sistr.littlemaidrebirth.entity.ITameable;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.ai.goal.WaterAvoidingRandomWalkingGoal;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
@@ -26,7 +26,7 @@ public class FreedomGoal extends WaterAvoidingRandomWalkingGoal {
     }
 
     public void setCenterPos() {
-        centerPos = creature.getPosition();
+        centerPos = creature.func_233580_cy_();
     }
 
     @Override
@@ -37,7 +37,7 @@ public class FreedomGoal extends WaterAvoidingRandomWalkingGoal {
     @Override
     public void startExecuting() {
         super.startExecuting();
-        if (!centerPos.withinDistance(creature.getPosition(), 16)) {
+        if (!centerPos.withinDistance(creature.func_233580_cy_(), 16)) {
             creature.attemptTeleport(
                     centerPos.getX() + 0.5F,
                     centerPos.getY() + 0.5F,
@@ -54,8 +54,8 @@ public class FreedomGoal extends WaterAvoidingRandomWalkingGoal {
 
     @Nullable
     @Override
-    protected Vec3d getPosition() {
-        Vec3d superPos = super.getPosition();
+    protected Vector3d getPosition() {
+        Vector3d superPos = super.getPosition();
         for (int i = 0; i < 3; i++) {
             if (superPos == null) {
                 return null;

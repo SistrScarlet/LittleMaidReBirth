@@ -91,7 +91,7 @@ public class EscortGoal extends Goal {
     }
 
     private void tryTeleport() {
-        BlockPos blockpos = this.owner.getPosition();
+        BlockPos blockpos = this.owner.func_233580_cy_();
 
         for (int i = 0; i < 10; ++i) {
             int x = this.getRandomInt(-3, 3);
@@ -117,7 +117,7 @@ public class EscortGoal extends Goal {
     }
 
     private boolean isTeleportable(BlockPos pos) {
-        PathNodeType type = WalkNodeProcessor.func_227480_b_(this.escort.world, pos.getX(), pos.getY(), pos.getZ());
+        PathNodeType type = WalkNodeProcessor.func_237231_a_(this.escort.world, pos.func_239590_i_());
         if (type != PathNodeType.WALKABLE) {
             return false;
         }
@@ -125,7 +125,7 @@ public class EscortGoal extends Goal {
         if (blockstate.getBlock() instanceof LeavesBlock) {
             return false;
         }
-        BlockPos blockpos = pos.subtract(new BlockPos(this.escort));
+        BlockPos blockpos = pos.subtract(this.escort.func_233580_cy_());
         return this.escort.world.hasNoCollisions(this.escort, this.escort.getBoundingBox().offset(blockpos));
     }
 

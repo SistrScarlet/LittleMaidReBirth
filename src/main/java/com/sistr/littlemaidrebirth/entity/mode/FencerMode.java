@@ -5,17 +5,16 @@ import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MobEntity;
-import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.SwordItem;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.common.util.FakePlayer;
 
 //基本的にはMeleeAttackGoalのラッパー
 //ただしFakePlayerに殴らせるようにしている
-//…要るかこれ？
 public class FencerMode implements IMode {
     protected final CreatureEntity owner;
     protected final IHasFakePlayer hasFakePlayer;
@@ -29,7 +28,7 @@ public class FencerMode implements IMode {
             @Override
             protected void checkAndPerformAttack(LivingEntity enemy, double distToEnemySqr) {
                 double reachSq = this.getAttackReachSqr(enemy);
-                if (reachSq < distToEnemySqr || 0 < this.attackTick || !attacker.canEntityBeSeen(enemy)) {
+                if (reachSq < distToEnemySqr || 0 < this.field_234037_i_ || !attacker.canEntityBeSeen(enemy)) {
                     return;
                 }
                 this.attacker.swingArm(Hand.MAIN_HAND);
@@ -43,14 +42,14 @@ public class FencerMode implements IMode {
                 if (enemy.getRevengeTarget() == fake) {
                     enemy.setRevengeTarget(attacker);
                 }
-                this.attackTick = MathHelper.ceil(fake.getCooldownPeriod() + 0.5F);
+                this.field_234037_i_ = MathHelper.ceil(fake.getCooldownPeriod() + 0.5F);
                 hasFakePlayer.syncToOrigin();
 
             }
 
             @Override
             protected double getAttackReachSqr(LivingEntity attackTarget) {
-                double reach = owner.getAttribute(PlayerEntity.REACH_DISTANCE).getValue() - 0.5D;
+                double reach = owner.getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue() - 0.5D;
                 return reach * reach;
             }
         };

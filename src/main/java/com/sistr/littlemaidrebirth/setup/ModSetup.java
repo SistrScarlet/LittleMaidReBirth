@@ -2,10 +2,9 @@ package com.sistr.littlemaidrebirth.setup;
 
 import com.sistr.littlemaidrebirth.Config;
 import com.sistr.littlemaidrebirth.LittleMaidReBirthMod;
+import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
 import net.minecraft.entity.EntityClassification;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.Mod;
@@ -18,14 +17,16 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = LittleMaidReBirthMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ModSetup {
 
-    public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth") {
+    /*public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth") {
         @Override
         public ItemStack createIcon() {
             return new ItemStack(Items.CAKE);
         }
-    };
+    };*/
 
     public static void init(final FMLCommonSetupEvent event) {
+        GlobalEntityTypeAttributes.put(Registration.LITTLE_MAID_MOB.get(), LittleMaidEntity.registerAttributes().func_233813_a_());
+
         //メイドさんのスポーンバイオーム
         List<BiomeDictionary.Type> spawnBiomeList = new ArrayList<>();
         spawnBiomeList.add(BiomeDictionary.Type.WET);

@@ -13,7 +13,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShearsItem;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.common.IShearable;
+import net.minecraftforge.common.IForgeShearable;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -52,8 +52,8 @@ public class RipperMode implements IMode {
                 this.owner.getPosY() - searchRadius / 4,
                 this.owner.getPosZ() - searchRadius);
         return this.owner.world.getEntitiesInAABBexcluding(this.owner, bb, (entity) ->
-                entity instanceof LivingEntity && entity instanceof IShearable
-                        && ((IShearable) entity).isShearable(this.owner.getHeldItemMainhand(), this.owner.world, entity.getPosition())
+                entity instanceof LivingEntity && entity instanceof IForgeShearable
+                        && ((IForgeShearable) entity).isShearable(this.owner.getHeldItemMainhand(), this.owner.world, entity.func_233580_cy_())
                         && this.owner.getEntitySenses().canSee(entity));
     }
 
@@ -75,7 +75,7 @@ public class RipperMode implements IMode {
     @Override
     public void tick() {
         Entity target = this.shearable.get(0);
-        if (!(target instanceof LivingEntity) || !(target instanceof IShearable)) {
+        if (!(target instanceof LivingEntity) || !(target instanceof IForgeShearable)) {
             this.shearable.remove(0);
             this.timeToIgnore = 0;
             return;
@@ -88,8 +88,9 @@ public class RipperMode implements IMode {
         if (target.getDistanceSq(this.owner) < 2 * 2) {
             ItemStack stack = this.owner.getHeldItemMainhand();
             BlockPos pos = new BlockPos(target.getPosX(), target.getPosY(), target.getPosZ());
-            if (((IShearable) target).isShearable(stack, target.world, pos)) {
-                List<ItemStack> drops = ((IShearable) target).onSheared(stack, target.world, pos,
+            if (((IForgeShearable) target).isShearable(stack, target.world, pos)) {
+                //todo プレイヤー？
+                List<ItemStack> drops = ((IForgeShearable) target).onSheared(null, stack, target.world, pos,
                         EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, stack));
                 Random rand = new Random();
                 drops.forEach(drop -> {

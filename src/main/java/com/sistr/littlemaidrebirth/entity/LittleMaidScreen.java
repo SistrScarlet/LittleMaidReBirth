@@ -1,5 +1,6 @@
 package com.sistr.littlemaidrebirth.entity;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.blacklab.lmr.entity.maidmodel.IHasMultiModel;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
@@ -34,57 +35,57 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
     }
 
     @Override
-    protected void init() {
-        super.init();
-        if (minecraft != null && openAt == null) {
-            openAt = minecraft.pointedEntity;
+    protected void func_231160_c_() {
+        super.func_231160_c_();
+        if (this.field_230706_i_ != null && openAt == null) {
+            openAt = this.field_230706_i_.pointedEntity;
         }
         //ひどい
-        this.addButton(new Button((this.width - xSize) / 2 - 20, (this.height - ySize) / 2,
-                20, 20, "", button -> {
+        this.func_230480_a_(new Button((this.field_230708_k_ - xSize) / 2 - 20, (this.field_230709_l_ - ySize) / 2,
+                20, 20, new StringTextComponent(""), button -> {
             //見ているエンティティが雇用中のメイドであるか
             if (openAt != null && openAt instanceof LivingEntity && openAt instanceof IHasMultiModel
                     && openAt instanceof ITameable && ((ITameable) openAt).getOwnerId().isPresent()
-                    && ((ITameable) openAt).getOwnerId().get().equals(minecraft.player.getUniqueID())) {
-                minecraft.displayGuiScreen(new ModelSelectScreen(new StringTextComponent(""),
+                    && ((ITameable) openAt).getOwnerId().get().equals(this.field_230706_i_.player.getUniqueID())) {
+                this.field_230706_i_.displayGuiScreen(new ModelSelectScreen(new StringTextComponent(""),
                         (LivingEntity) openAt, (IHasMultiModel) openAt, ~0));
             } else {//違う場合は閉じる
-                minecraft.displayGuiScreen(null);
+                this.field_230706_i_.displayGuiScreen(null);
             }
         }
         ) {
             @Override
-            public void renderButton(int p_renderButton_1_, int p_renderButton_2_, float p_renderButton_3_) {
-                super.renderButton(p_renderButton_1_, p_renderButton_2_, p_renderButton_3_);
-                itemRenderer.renderItemIntoGUI(armor, this.x - 8 + this.width / 2, this.y - 8 + this.height / 2);
+            public void func_230431_b_(MatrixStack matrixStack, int p_renderButton_1_, int p_renderButton_2_, float p_renderButton_3_) {
+                super.func_230431_b_(matrixStack, p_renderButton_1_, p_renderButton_2_, p_renderButton_3_);
+                field_230707_j_.renderItemIntoGUI(armor, this.field_230690_l_ - 8 + this.field_230688_j_ / 2, this.field_230691_m_ - 8 + this.field_230689_k_ / 2);
             }
         });
     }
 
     @Override
-    public void render(int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground();
-        super.render(mouseX, mouseY, partialTicks);
-        this.renderHoveredToolTip(mouseX, mouseY);
+    public void func_230430_a_(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
+        this.func_230446_a_(matrixStack);
+        super.func_230430_a_(matrixStack, mouseX, mouseY, partialTicks);
+        this.func_230459_a_(matrixStack, mouseX, mouseY);
         if (openAt != null && openAt instanceof LivingEntity)
-            InventoryScreen.drawEntityOnScreen((this.width - this.xSize) / 2 + 52, (this.height - this.ySize) / 2 + 59,
-                    20,  (this.width - this.xSize) / 2F + 52 - mouseX,  (this.height - this.ySize) / 2F + 30 - mouseY, (LivingEntity) openAt);
+            InventoryScreen.drawEntityOnScreen((this.field_230708_k_ - this.xSize) / 2 + 52, (this.field_230709_l_ - this.ySize) / 2 + 59,
+                    20, (this.field_230708_k_ - this.xSize) / 2F + 52 - mouseX, (this.field_230709_l_ - this.ySize) / 2F + 30 - mouseY, (LivingEntity) openAt);
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
+    protected void func_230451_b_(MatrixStack matrixStack, int mouseX, int mouseY) {
         RenderSystem.disableBlend();
-        this.font.drawString(this.title.getFormattedText(), 8F, 65F, 4210752);
-        String insideSkirt = new TranslationTextComponent("entity.littlemaidrebirth.little_maid_mob.InsideSkirt").getFormattedText();
-        this.font.drawString(insideSkirt, 168F - font.getStringWidth(insideSkirt), 65F, 4210752);
+        this.field_230712_o_.func_238421_b_(matrixStack, this.field_230704_d_.getString(), 8F, 65F, 4210752);
+        String insideSkirt = new TranslationTextComponent("entity.littlemaidrebirth.little_maid_mob.InsideSkirt").getString();
+        this.field_230712_o_.func_238421_b_(matrixStack, insideSkirt, 168F - this.field_230712_o_.getStringWidth(insideSkirt), 65F, 4210752);
     }
 
     @Override
-    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
+    protected void func_230450_a_(MatrixStack matrixStack, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
-        this.minecraft.getTextureManager().bindTexture(GUI);
-        int relX = (this.width - this.xSize) / 2;
-        int relY = (this.height - this.ySize) / 2;
-        this.blit(relX, relY, 0, 0, this.xSize, this.ySize);
+        this.field_230706_i_.getTextureManager().bindTexture(GUI);
+        int relX = (this.field_230708_k_ - this.xSize) / 2;
+        int relY = (this.field_230709_l_ - this.ySize) / 2;
+        this.func_238474_b_(matrixStack, relX, relY, 0, 0, this.xSize, this.ySize);
     }
 }

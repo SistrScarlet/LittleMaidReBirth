@@ -18,6 +18,7 @@ import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
 import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.*;
+import net.minecraft.util.math.vector.Vector3d;
 
 import java.util.List;
 import java.util.Optional;
@@ -122,7 +123,7 @@ public class CookingMode implements IMode {
         if (this.owner.isSneaking()) {
             this.owner.setSneaking(false);
         }
-        if (!this.owner.getPosition().withinDistance(furnacePos, 2)) {
+        if (!this.owner.func_233580_cy_().withinDistance(furnacePos, 2)) {
             if (--this.timeToRecalcPath <= 0) {
                 this.timeToRecalcPath = 10;
                 this.owner.getNavigator().tryMoveToXYZ(furnacePos.getX() + 0.5D, furnacePos.getY() + 0.5D, furnacePos.getZ() + 0.5D, 1);
@@ -219,7 +220,7 @@ public class CookingMode implements IMode {
     }
 
     public Optional<BlockPos> findFurnacePos() {
-        BlockPos ownerPos = owner.getPosition();
+        BlockPos ownerPos = owner.func_233580_cy_();
         //垂直方向に5ブロック調査
         for (int l = 0; l < 5; l++) {
             BlockPos center;
@@ -253,7 +254,7 @@ public class CookingMode implements IMode {
                         //見えないとこのブロックは除外し、これを起点とした調査も打ち切る
                         BlockRayTraceResult result = owner.world.rayTraceBlocks(new RayTraceContext(
                                 owner.getEyePosition(1F),
-                                new Vec3d(checkPos.getX() + 0.5F, checkPos.getY() + 0.5F, checkPos.getZ() + 0.5F),
+                                new Vector3d(checkPos.getX() + 0.5F, checkPos.getY() + 0.5F, checkPos.getZ() + 0.5F),
                                 RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, owner));
                         if (result.getType() != RayTraceResult.Type.MISS && !result.getPos().equals(checkPos)) {
                             allSearched.add(checkPos);

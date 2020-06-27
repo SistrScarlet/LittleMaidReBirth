@@ -11,6 +11,8 @@ import com.sistr.littlemaidrebirth.entity.mode.*;
 import com.sistr.littlemaidrebirth.setup.Registration;
 import net.blacklab.lmr.entity.maidmodel.*;
 import net.minecraft.entity.*;
+import net.minecraft.entity.ai.attributes.AttributeModifierMap;
+import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.monster.CreeperEntity;
 import net.minecraft.entity.monster.IMob;
@@ -27,13 +29,9 @@ import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.particles.ParticleTypes;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvents;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
@@ -115,14 +113,15 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                 entity instanceof IMob && !(entity instanceof CreeperEntity)));
     }
 
-    @Override
-    protected void registerAttributes() {
-        super.registerAttributes();
-        this.getAttributes().registerAttribute(SharedMonsterAttributes.ATTACK_DAMAGE);
-        this.getAttributes().registerAttribute(SharedMonsterAttributes.ATTACK_SPEED);
-        this.getAttributes().registerAttribute(SharedMonsterAttributes.LUCK);
-        this.getAttributes().registerAttribute(PlayerEntity.REACH_DISTANCE);
-        this.getAttribute(SharedMonsterAttributes.MOVEMENT_SPEED).setBaseValue(0.3D);
+    public static AttributeModifierMap.MutableAttribute registerAttributes() {
+        return LivingEntity.func_233639_cI_()
+                .func_233815_a_(Attributes.field_233823_f_, 1.0D)
+                .func_233815_a_(Attributes.field_233821_d_, 0.3D)
+                .func_233814_a_(Attributes.field_233825_h_)
+                .func_233814_a_(Attributes.field_233828_k_)
+                .func_233814_a_(net.minecraftforge.common.ForgeMod.REACH_DISTANCE.get())
+                .func_233814_a_(Attributes.field_233819_b_)
+                .func_233814_a_(Attributes.field_233824_g_);
     }
 
     @Override
@@ -241,14 +240,15 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         return worldIn.getBlockState(pos.down()).getMaterial().isOpaque() ? 10.0F : worldIn.getBrightness(pos) - 0.5F;
     }
 
+    //LMRと同様だけどマジックナンバーなのが気になるところ
     @Override
     public double getYOffset() {
-        return this.multiModel.getMultiModels()[0].getyOffset(caps);
+        return -0.3D;
     }
 
     @Override
     public double getMountedYOffset() {
-        return this.multiModel.getMultiModels()[0].getMountedYOffset(caps);
+        return super.getMountedYOffset() + 0.35D;
     }
 
     @Override
@@ -281,10 +281,10 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     //trueでアイテムが使用された、falseでされなかった
     //trueならItemStack.interactWithEntity()が起こらず、またアイテム使用が必ずキャンセルされる
     @Override
-    protected boolean processInteract(PlayerEntity player, Hand hand) {
+    protected ActionResultType func_230254_b_(PlayerEntity player, Hand hand) {
         ItemStack stack = player.getHeldItem(hand);
         if (player.isSecondaryUseActive()) {
-            return false;
+            return ActionResultType.PASS;
         }
         if (isStrike()) {
             if (stack.getItem() == Items.CAKE) {
@@ -298,7 +298,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                         player.inventory.deleteStack(stack);
                     }
                 }
-                return true;
+                return ActionResultType.CONSUME;
             }
             for (int i = 0; i < 5; i++) {
                 this.world.addParticle(ParticleTypes.SMOKE,
@@ -307,7 +307,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                         this.getPosZ() + (0.5F - rand.nextFloat()) * 0.2F,
                         0, 0.1, 0);
             }
-            return false;
+            return ActionResultType.PASS;
         }
         if (stack.getItem() == Items.SUGAR) {
             return tryChangeState(player, stack);
@@ -321,19 +321,19 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         if (!player.world.isRemote && getOwnerId().isPresent() && getOwnerId().get().equals(player.getUniqueID())) {
             openContainer(player);
         }
-        return true;
+        return ActionResultType.CONSUME;
     }
 
-    public boolean tryChangeState(PlayerEntity player, ItemStack stack) {
+    public ActionResultType tryChangeState(PlayerEntity player, ItemStack stack) {
         if (!getContract()) {
-            return false;
+            return ActionResultType.PASS;
         }
         this.playSound(SoundEvents.ENTITY_ITEM_PICKUP, 1.0F, this.getRNG().nextFloat() * 0.1F + 1.0F);
         this.world.addParticle(ParticleTypes.NOTE, this
                         .getPosX(), this.getPosY() + this.getEyeHeight(), this.getPosZ(),
                 0, this.rand.nextGaussian() * 0.02D, 0);
         if (player.world.isRemote) {
-            return true;
+            return ActionResultType.CONSUME;
         }
         getNavigator().clearPath();
         String state = this.getMovingState();
@@ -357,18 +357,18 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                 player.inventory.deleteStack(stack);
             }
         }
-        return true;
+        return ActionResultType.CONSUME;
     }
 
-    public boolean tryContract(PlayerEntity player, ItemStack stack) {
+    public ActionResultType tryContract(PlayerEntity player, ItemStack stack) {
         if (getContract()) {
-            return false;
+            return ActionResultType.PASS;
         }
         this.world.addParticle(ParticleTypes.HEART,
                 getPosX(), getPosY() + getEyeHeight(), getPosZ(),
                 0, this.rand.nextGaussian() * 0.02D, 0);
         if (player.world.isRemote) {
-            return true;
+            return ActionResultType.CONSUME;
         }
         while (receiveSalary(1)) ;//ここに給料処理が混じってるのがムカつく
         getNavigator().clearPath();
@@ -383,22 +383,22 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         }
         updateTextures();
         sync();
-        return true;
+        return ActionResultType.CONSUME;
     }
 
-    public boolean tryColorChange(PlayerEntity player, ItemStack stack) {
+    public ActionResultType tryColorChange(PlayerEntity player, ItemStack stack) {
         if (!getContract()) {
-            return false;
+            return ActionResultType.PASS;
         }
         byte color = convertDyeColor(stack.getItem());
         if (color < 0 || !getTextureBox()[0].hasColor(color)) {
             color = (byte) getTextureBox()[0].getRandomContractColor(rand);
         }
         if (getColor() == color) {
-            return false;
+            return ActionResultType.PASS;
         }
         if (player.world.isRemote) {
-            return true;
+            return ActionResultType.CONSUME;
         }
         if (!player.abilities.isCreativeMode) {
             stack.shrink(1);
@@ -409,19 +409,19 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         setColor(color);
         updateTextures();
         sync();
-        return true;
+        return ActionResultType.CONSUME;
     }
 
     //GUI開くやつ
     //todo 開いている間動かないようにする
     public void openContainer(PlayerEntity player) {
-        ITextComponent movingState = new TranslationTextComponent(
+        TextComponent movingState = new TranslationTextComponent(
                 getType().getTranslationKey() + "." + getMovingState());
         if (getMode() != null) {
-            ITextComponent modeName = new TranslationTextComponent(
+            TextComponent modeName = new TranslationTextComponent(
                     getType().getTranslationKey() + "." + getMode().getName()
             );
-            movingState.appendText(" : ").appendSibling(modeName);
+            movingState.func_240702_b_(" : ").func_230529_a_(modeName);
         }
         player.openContainer(new SimpleNamedContainerProvider((windowId, inv, playerEntity) ->
                 new LittleMaidContainer(windowId, inv, this), movingState));

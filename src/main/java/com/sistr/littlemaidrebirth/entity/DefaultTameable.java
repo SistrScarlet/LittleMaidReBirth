@@ -8,6 +8,7 @@ import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.Util;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.server.ServerWorld;
 
@@ -87,7 +88,7 @@ public class DefaultTameable implements ITameable {
     public void onDeath(DamageSource cause) {
         if (!this.tameable.world.isRemote && this.tameable.world.getGameRules().getBoolean(GameRules.SHOW_DEATH_MESSAGES)
                 && this.getOwner().isPresent() && this.getOwner().get() instanceof ServerPlayerEntity) {
-            this.getOwner().get().sendMessage(this.tameable.getCombatTracker().getDeathMessage());
+            this.getOwner().get().sendMessage(this.tameable.getCombatTracker().getDeathMessage(), Util.field_240973_b_);
         }
     }
 

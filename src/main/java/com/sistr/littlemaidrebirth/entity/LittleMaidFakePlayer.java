@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.IAttributeInstance;
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.inventory.IInventory;
@@ -122,10 +122,9 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
         dst.prevRotationPitch = src.prevRotationPitch;
         dst.setRotationYawHead(src.getRotationYawHead());
         dst.fallDistance = src.fallDistance;
-        dst.setFireTimer(src.getFireTimer());
+        dst.func_241209_g_(src.getFireTimer());
         dst.setAir(src.getAir());
-        dst.onGround = src.onGround;
-        dst.dimension = src.dimension;
+        dst.func_230245_c_(src.func_233570_aj_());
         dst.setInvulnerable(src.isInvulnerable());
         dst.timeUntilPortal = src.timeUntilPortal;
         dst.setUniqueId(src.getUniqueID());
@@ -150,10 +149,8 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
         dst.maxHurtTime = src.maxHurtTime;
         dst.deathTime = src.deathTime;
         dst.setAbsorptionAmount(src.getAbsorptionAmount());
-        src.getAttributes().getAllAttributes().forEach(srcInstance -> {
-            IAttributeInstance dstInstance = dst.getAttribute(srcInstance.getAttribute());
-            //普通はnullはありえないが、なんかSwordBlockingCombat導入下だと発生するっぽい
-            //属性登録の問題？
+        src.func_233645_dx_().field_233775_b_.values().forEach(srcInstance -> {
+            ModifiableAttributeInstance dstInstance = dst.getAttribute(srcInstance.getAttribute());
             if (dstInstance != null) {
                 dstInstance.setBaseValue(srcInstance.getBaseValue());
                 Collection<AttributeModifier> modifiers = srcInstance.func_225505_c_();
@@ -165,7 +162,7 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
                     if (dstModifier != null) {
                         dstInstance.removeModifier(dstModifier);
                     }
-                    dstInstance.applyModifier(srcModifier);
+                    dstInstance.func_233767_b_(srcModifier);
                 }
             }
         });

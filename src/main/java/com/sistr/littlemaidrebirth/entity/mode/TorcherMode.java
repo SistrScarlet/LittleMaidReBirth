@@ -12,6 +12,7 @@ import net.minecraft.item.*;
 import net.minecraft.util.Direction;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.common.util.FakePlayer;
 
 import java.util.Collection;
@@ -50,7 +51,7 @@ public class TorcherMode implements IMode {
             return false;
         }
         Entity ownerOwner = optionalOwner.get();
-        if (12 * 12 < ownerOwner.getDistanceSq(owner) || 8 < owner.world.getLight(ownerOwner.getPosition())) {
+        if (12 * 12 < ownerOwner.getDistanceSq(owner) || 8 < owner.world.getLight(ownerOwner.func_233580_cy_())) {
             return false;
         }
 
@@ -64,7 +65,7 @@ public class TorcherMode implements IMode {
         if (!tameable.getOwner().isPresent()) {
             return canSpawnEnemyPoses;
         }
-        BlockPos ownerPos = tameable.getOwner().get().getPosition();
+        BlockPos ownerPos = tameable.getOwner().get().func_233580_cy_();
         //垂直方向に5ブロック調査
         for (int l = 0; l < 5; l++) {
             BlockPos center;
@@ -101,7 +102,7 @@ public class TorcherMode implements IMode {
                         //見えないとこのブロックは除外し、これを起点とした調査も打ち切る
                         BlockRayTraceResult result = owner.world.rayTraceBlocks(new RayTraceContext(
                                 owner.getEyePosition(1F),
-                                new Vec3d(checkPos.getX() + 0.5F, checkPos.getY() + 1F, checkPos.getZ() + 0.5F),
+                                new Vector3d(checkPos.getX() + 0.5F, checkPos.getY() + 1F, checkPos.getZ() + 0.5F),
                                 RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, owner));
                         if (result.getType() != RayTraceResult.Type.MISS && !result.getPos().equals(checkPos)) {
                             allSearched.add(checkPos);
@@ -176,7 +177,7 @@ public class TorcherMode implements IMode {
             return;
         }
         //距離が遠い場合は近づこうとする
-        if (2 * 2 < pos.distanceSq(owner.getPosition())) {
+        if (2 * 2 < pos.distanceSq(owner.func_233580_cy_())) {
             if (--this.timeToRecalcPath <= 0) {
                 this.timeToRecalcPath = 10;
                 owner.getNavigator().tryMoveToXYZ(pos.getX() + 0.5D, pos.getY() + 1, pos.getZ() + 0.5D, 1);
@@ -192,8 +193,8 @@ public class TorcherMode implements IMode {
         if (!(item instanceof BlockItem)) {
             return;
         }
-        Vec3d start = owner.getEyePosition(1F);
-        Vec3d end = new Vec3d(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D);
+        Vector3d start = owner.getEyePosition(1F);
+        Vector3d end = new Vector3d(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D);
         BlockRayTraceResult result = owner.world.rayTraceBlocks(new RayTraceContext(
                 start, end, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this.owner));
         hasFakePlayer.syncToFakePlayer();
