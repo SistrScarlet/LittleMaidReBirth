@@ -13,7 +13,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '1.1.0'
+version = '1.1.1'
 group = 'com.sistr.littlemaidrebirth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'littlemaidrebirth'
 
@@ -98,7 +98,7 @@ dependencies {
     minecraft 'net.minecraftforge:forge:1.15.2-31.2.0'
 
     //compile fg.deobf("net.sistr:littlemaidmodelloader:1.0.0")
-    compile fileTree(dir: './mods', include: '*.jar')
+    compile fileTree(dir: './mods15', include: '*.jar')
 
     // You may put jars on which you depend on in ./libs or you may define them like so..
     // compile "some.group:artifact:version:classifier"

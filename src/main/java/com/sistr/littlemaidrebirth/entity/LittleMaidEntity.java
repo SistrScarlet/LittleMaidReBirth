@@ -241,14 +241,15 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         return worldIn.getBlockState(pos.down()).getMaterial().isOpaque() ? 10.0F : worldIn.getBrightness(pos) - 0.5F;
     }
 
+    //LMRと同様だけどマジックナンバーなのが気になるところ
     @Override
     public double getYOffset() {
-        return this.multiModel.getMultiModels()[0].getyOffset(caps);
+        return -0.3D;
     }
 
     @Override
     public double getMountedYOffset() {
-        return this.multiModel.getMultiModels()[0].getMountedYOffset(caps);
+        return super.getMountedYOffset() + 0.35D;
     }
 
     @Override
