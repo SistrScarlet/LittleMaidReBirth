@@ -6,7 +6,6 @@ import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
 import net.minecraft.world.biome.Biome;
-import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -28,7 +27,7 @@ public class ModSetup {
         GlobalEntityTypeAttributes.put(Registration.LITTLE_MAID_MOB.get(), LittleMaidEntity.registerAttributes().func_233813_a_());
 
         //メイドさんのスポーンバイオーム
-        List<BiomeDictionary.Type> spawnBiomeList = new ArrayList<>();
+        /*List<BiomeDictionary.Type> spawnBiomeList = new ArrayList<>();
         spawnBiomeList.add(BiomeDictionary.Type.WET);
         spawnBiomeList.add(BiomeDictionary.Type.DRY);
         spawnBiomeList.add(BiomeDictionary.Type.SAVANNA);
@@ -60,7 +59,7 @@ public class ModSetup {
                         Config.SPAWN_WEIGHT_LM.get(), Config.SPAWN_MIN_GROUP_SIZE_LM.get(), Config.SPAWN_MAX_GROUP_SIZE_LM.get()));
 
             }
-        }
+        }*/
     }
 
 }

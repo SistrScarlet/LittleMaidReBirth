@@ -126,7 +126,7 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
         dst.setAir(src.getAir());
         dst.func_230245_c_(src.func_233570_aj_());
         dst.setInvulnerable(src.isInvulnerable());
-        dst.timeUntilPortal = src.timeUntilPortal;
+        //dst.timeUntilPortal = src.timeUntilPortal;
         dst.setUniqueId(src.getUniqueID());
         if (src.getCustomName() != null) {
             dst.setCustomName(src.getCustomName());
