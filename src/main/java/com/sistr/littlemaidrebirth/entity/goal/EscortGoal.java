@@ -41,11 +41,10 @@ public class EscortGoal extends Goal {
         if (!this.tameable.getMovingState().equals(ITameable.ESCORT)) {
             return false;
         }
-        Optional<Entity> optional = this.tameable.getOwner();
-        if (!optional.isPresent()) {
+        Entity owner = this.tameable.getOwner();
+        if (owner == null) {
             return false;
         }
-        Entity owner = optional.get();
         if (owner.isSpectator()) {
             return false;
         }

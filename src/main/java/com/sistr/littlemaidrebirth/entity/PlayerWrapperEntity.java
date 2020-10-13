@@ -27,7 +27,9 @@ public class PlayerWrapperEntity extends FakePlayer {
     @Override
     protected void registerAttributes() {
         super.registerAttributes();
+        if (this.getAttributes().getAttributeInstance(SharedMonsterAttributes.FOLLOW_RANGE) == null)
         this.getAttributes().registerAttribute(SharedMonsterAttributes.FOLLOW_RANGE);
+        if (this.getAttributes().getAttributeInstance(SharedMonsterAttributes.ATTACK_KNOCKBACK) == null)
         this.getAttributes().registerAttribute(SharedMonsterAttributes.ATTACK_KNOCKBACK);
     }
 

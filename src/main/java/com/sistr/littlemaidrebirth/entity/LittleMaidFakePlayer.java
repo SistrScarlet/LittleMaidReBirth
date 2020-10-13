@@ -152,17 +152,19 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
         dst.setAbsorptionAmount(src.getAbsorptionAmount());
         src.getAttributes().getAllAttributes().forEach(srcInstance -> {
             IAttributeInstance dstInstance = dst.getAttribute(srcInstance.getAttribute());
-            dstInstance.setBaseValue(srcInstance.getBaseValue());
-            Collection<AttributeModifier> modifiers = srcInstance.func_225505_c_();
-            for (AttributeModifier srcModifier : modifiers) {
-                if (srcModifier == null) {
-                    continue;
+            if (dstInstance != null) {
+                dstInstance.setBaseValue(srcInstance.getBaseValue());
+                Collection<AttributeModifier> modifiers = srcInstance.func_225505_c_();
+                for (AttributeModifier srcModifier : modifiers) {
+                    if (srcModifier == null) {
+                        continue;
+                    }
+                    AttributeModifier dstModifier = dstInstance.getModifier(srcModifier.getID());
+                    if (dstModifier != null) {
+                        dstInstance.removeModifier(dstModifier);
+                    }
+                    dstInstance.applyModifier(srcModifier);
                 }
-                AttributeModifier dstModifier = dstInstance.getModifier(srcModifier.getID());
-                if (dstModifier != null) {
-                    dstInstance.removeModifier(dstModifier);
-                }
-                dstInstance.applyModifier(srcModifier);
             }
         });
         src.getActivePotionMap().forEach(((effect, instance) -> dst.getActivePotionMap().put(effect, instance)));

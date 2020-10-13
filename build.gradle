@@ -13,9 +13,9 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '1.1.1'
+version = '1.15.2-1.2.0'
 group = 'com.sistr.littlemaidrebirth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'littlemaidrebirth'
+archivesBaseName = 'LMReBirth-Forge'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
@@ -98,7 +98,7 @@ dependencies {
     minecraft 'net.minecraftforge:forge:1.15.2-31.2.0'
 
     //compile fg.deobf("net.sistr:littlemaidmodelloader:1.0.0")
-    compile fileTree(dir: './mods15', include: '*.jar')
+    compile fileTree(dir: './mods', include: '*.jar')
 
     // You may put jars on which you depend on in ./libs or you may define them like so..
     // compile "some.group:artifact:version:classifier"

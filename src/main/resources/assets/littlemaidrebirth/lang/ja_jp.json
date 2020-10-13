@@ -11,5 +11,7 @@
   "entity.littlemaidrebirth.little_maid_mob.Archer": "射手",
   "entity.littlemaidrebirth.little_maid_mob.Cooking": "お料理係",
   "entity.littlemaidrebirth.little_maid_mob.Ripper": "毛狩り隊",
-  "entity.littlemaidrebirth.little_maid_mob.Torcher": "照明係"
+  "entity.littlemaidrebirth.little_maid_mob.Torcher": "照明係",
+
+  "item.littlemaidrebirth.little_maid_spawn_egg": "リトルメイドのスポーンエッグ"
 }

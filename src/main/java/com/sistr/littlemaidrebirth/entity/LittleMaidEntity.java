@@ -7,13 +7,14 @@ import com.sistr.littlemaidrebirth.entity.goal.EscortGoal;
 import com.sistr.littlemaidrebirth.entity.goal.FreedomGoal;
 import com.sistr.littlemaidrebirth.entity.goal.HealMyselfGoal;
 import com.sistr.littlemaidrebirth.entity.goal.WaitGoal;
+import com.sistr.littlemaidrebirth.entity.iff.IHasIFF;
 import com.sistr.littlemaidrebirth.entity.mode.*;
 import com.sistr.littlemaidrebirth.setup.Registration;
-import net.blacklab.lmr.entity.maidmodel.*;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.monster.CreeperEntity;
 import net.minecraft.entity.monster.IMob;
+import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.inventory.IInventory;
@@ -27,7 +28,6 @@ import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.particles.ParticleTypes;
-import net.minecraft.tags.ItemTags;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.Hand;
 import net.minecraft.util.ResourceLocation;
@@ -37,31 +37,34 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
-import net.minecraftforge.common.Tags;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData;
 import net.minecraftforge.fml.network.NetworkHooks;
-import net.sistr.lmml.entity.DefaultMultiModel;
-import net.sistr.lmml.util.manager.ModelManager;
+import net.sistr.lmml.LittleMaidModelLoader;
+import net.sistr.lmml.entity.IHasMultiModel;
+import net.sistr.lmml.entity.MultiModelCompound;
+import net.sistr.lmml.maidmodel.IModelCaps;
+import net.sistr.lmml.maidmodel.ModelMultiBase;
+import net.sistr.lmml.resource.manager.TextureManager;
+import net.sistr.lmml.util.TextureColor;
+import net.sistr.lmml.util.TextureHolder;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.UUID;
 
-import static net.sistr.lmml.util.ConvertColor.convertDyeColor;
-
 //メイドさん本体
 //継承しないのが吉
 //todo 啼くように、このクラスの行数を500まで減らす
-public class LittleMaidEntity extends CreatureEntity implements IEntityAdditionalSpawnData, IHasInventory, ITameable,
-        INeedSalary, IHasMode, IArcher, IHasFakePlayer, IHasMultiModel {
+public class LittleMaidEntity extends TameableEntity implements IEntityAdditionalSpawnData, IHasInventory, ITameable,
+        INeedSalary, IHasIFF, IHasMode, IArcher, IHasFakePlayer, IHasMultiModel {
     //変数群。カオス
     private static final DataParameter<String> MOVING_STATE = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.STRING);
-    private static final DataParameter<Optional<UUID>> OWNER_ID = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.OPTIONAL_UNIQUE_ID);
     private static final DataParameter<Boolean> AIMING = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.BOOLEAN);
     private final IHasInventory littleMaidInventory = new LittleMaidInventory(this);
     //todo お給料機能とテイム機能一緒にした方がよさげ
-    private final ITameable tameable = new DefaultTameable(this, this.dataManager, MOVING_STATE, OWNER_ID);
+    private final DefaultTameable tameable = new DefaultTameable(this, this.dataManager, MOVING_STATE, TameableEntity.OWNER_UNIQUE_ID);
     private final TickTimeBaseNeedSalary needSalary = new TickTimeBaseNeedSalary(this, this,
             7, Lists.newArrayList(Items.SUGAR));
     //todo モードの追加方法を変えるべし
@@ -74,21 +77,33 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                     new RipperMode(this),
                     new TorcherMode(this, this, this)));
     private final LittleMaidFakePlayer fakePlayer = new LittleMaidFakePlayer(this, this);
-    private final DefaultMultiModel multiModel = new DefaultMultiModel(this,
-            ModelManager.instance.getDefaultTexture(this),
-            ModelManager.instance.getDefaultTexture(this));
-    private final IModelCaps caps = new LivingEntityCaps(this);
+    private final MultiModelCompound multiModel;
 
     //コンストラクタ
     public LittleMaidEntity(EntityType<LittleMaidEntity> type, World worldIn) {
         super(type, worldIn);
+        multiModel = new MultiModelCompound(this,
+                LittleMaidModelLoader.getInstance().getTextureManager().getTexture("Default")
+                        .orElseThrow(() -> new IllegalStateException("デフォルトテクスチャが存在しません。")),
+                LittleMaidModelLoader.getInstance().getTextureManager().getTexture("Default")
+                        .orElseThrow(() -> new IllegalStateException("デフォルトテクスチャが存在しません。")));
     }
 
     public LittleMaidEntity(World world) {
         super(Registration.LITTLE_MAID_MOB.get(), world);
+        multiModel = new MultiModelCompound(this,
+                LittleMaidModelLoader.getInstance().getTextureManager().getTexture("Default")
+                        .orElseThrow(() -> new IllegalStateException("デフォルトテクスチャが存在しません。")),
+                LittleMaidModelLoader.getInstance().getTextureManager().getTexture("Default")
+                        .orElseThrow(() -> new IllegalStateException("デフォルトテクスチャが存在しません。")));
     }
 
-    //レジスタ
+    public LittleMaidEntity(World world, MultiModelCompound multiModel) {
+        super(Registration.LITTLE_MAID_MOB.get(), world);
+        this.multiModel = multiModel;
+    }
+
+    //登録メソッドたち
 
     @Override
     protected void registerGoals() {
@@ -97,13 +112,13 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         //todo 手に持ったケーキや砂糖に反応するやーつ
         this.goalSelector.addGoal(10, new WaitGoal(this, this));
         this.goalSelector.addGoal(15, new ModeWrapperGoal(this));
-        //todo ドロップアイテム回収Goal
         this.goalSelector.addGoal(20, new EscortGoal(this, this, 4, 3, 1));
+        //todo ドロップアイテム回収Goal
         this.goalSelector.addGoal(20, new FreedomGoal(this, this, 1));
         this.goalSelector.addGoal(25, new WaterAvoidingRandomWalkingGoal(this, 1.0D) {
             @Override
             public boolean shouldExecute() {
-                return !getOwnerId().isPresent() && super.shouldExecute();
+                return LittleMaidEntity.this.getOwnerId() == null && super.shouldExecute();
             }
         });
         this.goalSelector.addGoal(30, new LookAtGoal(this, PlayerEntity.class, 8.0F));
@@ -130,10 +145,9 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         super.registerData();
         this.dataManager.register(AIMING, false);
         this.dataManager.register(MOVING_STATE, ITameable.NONE);
-        this.dataManager.register(OWNER_ID, Optional.empty());
     }
 
-    //読み込み時の読み書き系
+    //読み書き系
 
     @Override
     public void writeAdditional(CompoundNBT compound) {
@@ -141,11 +155,19 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
 
         this.writeInventory(compound);
 
-        this.writeTameable(compound);
+        this.tameable.write(compound);
 
         this.writeSalary(compound);
 
-        multiModel.write(compound);
+        compound.putByte("SkinColor", (byte) getColor().getIndex());
+        compound.putBoolean("IsContract", isContract());
+        compound.putString("SkinTexture", getTextureHolder(Layer.SKIN, Part.HEAD).getTextureName());
+        for (Part part : Part.values()) {
+            compound.putString("ArmorTextureInner" + part.getPartName(),
+                    getTextureHolder(Layer.INNER, part).getTextureName());
+            compound.putString("ArmorTextureOuter" + part.getPartName(),
+                    getTextureHolder(Layer.OUTER, part).getTextureName());
+        }
 
     }
 
@@ -155,46 +177,60 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
 
         this.readInventory(compound);
 
-        this.readTameable(compound);
+        this.tameable.read(compound);
 
         this.readSalary(compound);
 
-        multiModel.read(compound);
-
-        sync();
+        if (compound.contains("SkinColor")) {
+            setColor(TextureColor.getColor(compound.getByte("SkinColor")));
+        }
+        setContract(compound.getBoolean("IsContract"));
+        TextureManager textureManager = LittleMaidModelLoader.getInstance().getTextureManager();
+        if (compound.contains("SkinTexture")) {
+            textureManager.getTexture(compound.getString("SkinTexture"))
+                    .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.SKIN, Part.HEAD));
+        }
+        for (Part part : Part.values()) {
+            String inner = "ArmorTextureInner" + part.getPartName();
+            String outer = "ArmorTextureOuter" + part.getPartName();
+            if (compound.contains(inner)) {
+                textureManager.getTexture(compound.getString(inner))
+                        .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.INNER, part));
+            }
+            if (compound.contains(outer)) {
+                textureManager.getTexture(compound.getString(outer))
+                        .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.OUTER, part));
+            }
+        }
 
     }
-
-    //todo hasMultiModelに内包するか？
 
     //鯖
     @Override
     public void writeSpawnData(PacketBuffer buffer) {
-        TextureBox[] box = multiModel.getTextureBox();
-        String main = "";
-        String armor = "";
-        if (box[0] != null && box[0].textureName != null) {
-            main = box[0].textureName;
+        buffer.writeEnumValue(getColor());
+        buffer.writeBoolean(isContract());
+        buffer.writeString(getTextureHolder(Layer.SKIN, Part.HEAD).getTextureName());
+        for (Part part : Part.values()) {
+            buffer.writeString(getTextureHolder(Layer.INNER, part).getTextureName());
+            buffer.writeString(getTextureHolder(Layer.OUTER, part).getTextureName());
         }
-        if (box[1] != null && box[1].textureName != null) {
-            armor = box[1].textureName;
-        }
-        buffer.writeString(main);
-        buffer.writeString(armor);
-        buffer.writeByte(getColor());
-        buffer.writeBoolean(getContract());
     }
 
-    //蔵
     @Override
     public void readSpawnData(PacketBuffer additionalData) {
-        String main = additionalData.readString();
-        String armor = additionalData.readString();
-        if (!main.isEmpty()) setTextureBox(0, ModelManager.instance.getTextureBox(main));
-        if (!armor.isEmpty()) setTextureBox(1, ModelManager.instance.getTextureBox(armor));
-        setColor(additionalData.readByte());
+        //readString()はクラ処理。このメソッドでは、クラ側なので問題なし
+        setColor(additionalData.readEnumValue(TextureColor.class));
         setContract(additionalData.readBoolean());
-        updateTextures();
+        TextureManager textureManager = LittleMaidModelLoader.getInstance().getTextureManager();
+        textureManager.getTexture(additionalData.readString())
+                .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.SKIN, Part.HEAD));
+        for (Part part : Part.values()) {
+            textureManager.getTexture(additionalData.readString())
+                    .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.INNER, part));
+            textureManager.getTexture(additionalData.readString())
+                    .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.OUTER, part));
+        }
     }
 
     //バニラメソッズ
@@ -210,7 +246,7 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     public void livingTick() {
         updateArmSwingProgress();
         super.livingTick();
-        if (getContract()) needSalary.tick();
+        if (isTamed()) needSalary.tick();
         //アイテム回収処理
         fakePlayer.livingTick();
     }
@@ -218,38 +254,55 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     @Override
     public void onDeath(DamageSource cause) {
         super.onDeath(cause);
-        tameable.onDeath(cause);
         fakePlayer.onDeath(cause);
     }
 
-    //todo hasMultiModelに内包するか？
+    //このままだとEntitySizeが作っては捨てられてを繰り返すのでパフォーマンスがよろしくないかも
+    @Nonnull
     @Override
-    public EntitySize getSize(Pose poseIn) {
-        float width = getWidth();
-        float height = getHeight();
-        ModelMultiBase modelMultiBase = this.getMultiModels()[0];
-        if (modelMultiBase != null) {
-            width = modelMultiBase.getWidth(caps);
-            height = modelMultiBase.getHeight(caps);
+    public EntitySize getSize(@Nonnull Pose poseIn) {
+        EntitySize size;
+        ModelMultiBase model = getModel(Layer.SKIN, Part.HEAD)
+                .orElse(LittleMaidModelLoader.getInstance().getModelManager().getDefaultModel());
+        float height = model.getHeight(getCaps());
+        float width = model.getWidth(getCaps());
+        size = new EntitySize(width, height, false);
+        return size.scale(getRenderScale());
+    }
+
+    /**
+     * 上に乗ってるエンティティへのオフセット
+     * */
+    @Override
+    public double getMountedYOffset() {
+        ModelMultiBase model = getModel(Layer.SKIN, Part.HEAD)
+                .orElse(LittleMaidModelLoader.getInstance().getModelManager().getDefaultModel());
+        return model.getMountedYOffset(getCaps());
+    }
+
+    /**
+     * 騎乗時のオフセット
+     * */
+    @Override
+    public double getYOffset() {
+        ModelMultiBase model = getModel(Layer.SKIN, Part.HEAD)
+                .orElse(LittleMaidModelLoader.getInstance().getModelManager().getDefaultModel());
+        return model.getyOffset(getCaps()) - getHeight();
+    }
+
+    //防具の更新
+    @Override
+    public void setItemStackToSlot(EquipmentSlotType slotIn, @Nonnull ItemStack stack) {
+        if (slotIn.getSlotType() == EquipmentSlotType.Group.ARMOR) {
+            multiModel.updateArmor();
         }
-        return EntitySize.flexible(width, height);
+        super.setItemStackToSlot(slotIn, stack);
     }
 
     //canSpawnとかでも使われる
     @Override
     public float getBlockPathWeight(BlockPos pos, IWorldReader worldIn) {
         return worldIn.getBlockState(pos.down()).getMaterial().isOpaque() ? 10.0F : worldIn.getBrightness(pos) - 0.5F;
-    }
-
-    //LMRと同様だけどマジックナンバーなのが気になるところ
-    @Override
-    public double getYOffset() {
-        return -0.3D;
-    }
-
-    @Override
-    public double getMountedYOffset() {
-        return super.getMountedYOffset() + 0.35D;
     }
 
     @Override
@@ -277,65 +330,85 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         return super.attackEntityFrom(source, amount);
     }
 
+    @Nullable
+    @Override
+    public AgeableEntity createChild(AgeableEntity ageable) {
+        return null;
+    }
+
+    public boolean isFriend(Entity entity) {
+        UUID ownerId = this.getOwnerId();
+        if (ownerId != null) {
+            //主はフレンド
+            if (ownerId.equals(entity.getUniqueID())) {
+                return true;
+            }
+            //同じ主を持つ者はフレンド
+            if (entity instanceof ITameable && ownerId.equals(((ITameable) entity).getOwnerId())
+                    || entity instanceof TameableEntity && ownerId.equals(((TameableEntity) entity).getOwnerId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     //todo 以下数メソッドにはもうちと整理が必要か
 
     //trueでアイテムが使用された、falseでされなかった
     //trueならItemStack.interactWithEntity()が起こらず、またアイテム使用が必ずキャンセルされる
+    //継承元のコードは無視
     @Override
-    protected boolean processInteract(PlayerEntity player, Hand hand) {
+    public boolean processInteract(PlayerEntity player, Hand hand) {
         ItemStack stack = player.getHeldItem(hand);
         if (player.isSecondaryUseActive()) {
             return false;
         }
         if (isStrike()) {
-            if (stack.getItem() == Items.CAKE) {
-                this.world.addParticle(ParticleTypes.HEART,
-                        getPosX(), getPosY() + getEyeHeight(), getPosZ(),
-                        0, this.rand.nextGaussian() * 0.02D, 0);
-                while (receiveSalary(1)) ;
-                if (!player.abilities.isCreativeMode) {
-                    stack.shrink(1);
-                    if (stack.isEmpty()) {
-                        player.inventory.deleteStack(stack);
-                    }
+            //ケーキじゃないなら不満気にしてリターン
+            if (stack.getItem() != Items.CAKE) {
+                for (int i = 0; i < 5; i++) {
+                    this.world.addParticle(ParticleTypes.SMOKE,
+                            this.getPosX() + (0.5F - rand.nextFloat()) * 0.2F,
+                            this.getPosYEye() + (0.5F - rand.nextFloat()) * 0.2F,
+                            this.getPosZ() + (0.5F - rand.nextFloat()) * 0.2F,
+                            0, 0.1, 0);
                 }
-                return true;
+                return false;
             }
-            for (int i = 0; i < 5; i++) {
-                this.world.addParticle(ParticleTypes.SMOKE,
-                        this.getPosX() + (0.5F - rand.nextFloat()) * 0.2F,
-                        this.getPosYEye() + (0.5F - rand.nextFloat()) * 0.2F,
-                        this.getPosZ() + (0.5F - rand.nextFloat()) * 0.2F,
-                        0, 0.1, 0);
+            //ケーキなら喜んで頂く
+            this.world.addParticle(ParticleTypes.HEART,
+                    getPosX(), getPosY() + getEyeHeight(), getPosZ(),
+                    0, this.rand.nextGaussian() * 0.02D, 0);
+            while (receiveSalary(1)) ;
+            if (!player.abilities.isCreativeMode) {
+                stack.shrink(1);
+                if (stack.isEmpty()) {
+                    player.inventory.deleteStack(stack);
+                }
             }
-            return false;
+            return true;
         }
-        if (stack.getItem() == Items.SUGAR) {
-            return tryChangeState(player, stack);
+        if (isTamed()) {
+            if (stack.getItem() == Items.SUGAR) {
+                return changeState(player, stack);
+            }
+        } else {
+            if (stack.getItem() == Items.CAKE) {
+                return contract(player, stack);
+            }
         }
-        if (stack.getItem() == Items.CAKE) {
-            return tryContract(player, stack);
-        }
-        if (stack.getItem().isIn(Tags.Items.DYES)) {
-            return tryColorChange(player, stack);
-        }
-        if (!player.world.isRemote && getOwnerId().isPresent() && getOwnerId().get().equals(player.getUniqueID())) {
+        if (!player.world.isRemote && player.getUniqueID().equals(this.getOwnerId())) {
             openContainer(player);
+            //Minecraft.getInstance().displayGuiScreen(new IFFScreen(new StringTextComponent(""), this, this));
         }
         return true;
     }
 
-    public boolean tryChangeState(PlayerEntity player, ItemStack stack) {
-        if (!getContract()) {
-            return false;
-        }
+    public boolean changeState(PlayerEntity player, ItemStack stack) {
         this.playSound(SoundEvents.ENTITY_ITEM_PICKUP, 1.0F, this.getRNG().nextFloat() * 0.1F + 1.0F);
         this.world.addParticle(ParticleTypes.NOTE, this
                         .getPosX(), this.getPosY() + this.getEyeHeight(), this.getPosZ(),
                 0, this.rand.nextGaussian() * 0.02D, 0);
-        if (player.world.isRemote) {
-            return true;
-        }
         getNavigator().clearPath();
         String state = this.getMovingState();
         switch (state) {
@@ -361,16 +434,10 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         return true;
     }
 
-    public boolean tryContract(PlayerEntity player, ItemStack stack) {
-        if (getContract()) {
-            return false;
-        }
+    public boolean contract(PlayerEntity player, ItemStack stack) {
         this.world.addParticle(ParticleTypes.HEART,
                 getPosX(), getPosY() + getEyeHeight(), getPosZ(),
                 0, this.rand.nextGaussian() * 0.02D, 0);
-        if (player.world.isRemote) {
-            return true;
-        }
         while (receiveSalary(1)) ;//ここに給料処理が混じってるのがムカつく
         getNavigator().clearPath();
         setOwnerId(player.getUniqueID());
@@ -382,34 +449,6 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
                 player.inventory.deleteStack(stack);
             }
         }
-        updateTextures();
-        sync();
-        return true;
-    }
-
-    public boolean tryColorChange(PlayerEntity player, ItemStack stack) {
-        if (!getContract()) {
-            return false;
-        }
-        byte color = convertDyeColor(stack.getItem());
-        if (color < 0 || !getTextureBox()[0].hasColor(color)) {
-            color = (byte) getTextureBox()[0].getRandomContractColor(rand);
-        }
-        if (getColor() == color) {
-            return false;
-        }
-        if (player.world.isRemote) {
-            return true;
-        }
-        if (!player.abilities.isCreativeMode) {
-            stack.shrink(1);
-            if (stack.isEmpty()) {
-                player.inventory.deleteStack(stack);
-            }
-        }
-        setColor(color);
-        updateTextures();
-        sync();
         return true;
     }
 
@@ -459,31 +498,6 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
     //テイム関連
 
     @Override
-    public void writeTameable(CompoundNBT nbt) {
-        tameable.writeTameable(nbt);
-    }
-
-    @Override
-    public void readTameable(CompoundNBT nbt) {
-        tameable.readTameable(nbt);
-    }
-
-    @Override
-    public Optional<Entity> getOwner() {
-        return tameable.getOwner();
-    }
-
-    @Override
-    public void setOwnerId(UUID id) {
-        tameable.setOwnerId(id);
-    }
-
-    @Override
-    public Optional<UUID> getOwnerId() {
-        return tameable.getOwnerId();
-    }
-
-    @Override
     public String getMovingState() {
         return tameable.getMovingState();
     }
@@ -492,8 +506,9 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         tameable.setMovingState(string);
     }
 
-    public boolean isFriend(Entity entity) {
-        return tameable.isFriend(entity);
+    @Override
+    public boolean isTamed() {
+        return getOwnerId() != null;
     }
 
     //お給料
@@ -576,44 +591,31 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
 
     //マルチモデル関連
 
-    //このメソッドを発動させたサイドから逆サイドに同期する
-    public void sync() {
-        recalculateSize();
-        multiModel.sync();
+    @Override
+    public boolean isAllowChangeTexture(@Nullable Entity entity, TextureHolder textureHolder, @Nonnull Layer layer, @Nonnull Part part) {
+        return multiModel.isAllowChangeTexture(entity, textureHolder, layer, part);
     }
 
     @Override
-    public void updateTextures() {
-        multiModel.updateTextures();
+    public void setTextureHolder(TextureHolder textureHolder, @Nonnull Layer layer, @Nonnull Part part) {
+        multiModel.setTextureHolder(textureHolder, layer, part);
+        if (layer == Layer.SKIN) {
+            recalculateSize();
+        }
     }
 
     @Override
-    public void setTextures(int index, ResourceLocation[] names) {
-        multiModel.setTextures(index, names);
+    public TextureHolder getTextureHolder(@Nonnull Layer layer, @Nonnull Part part) {
+        return multiModel.getTextureHolder(layer, part);
     }
 
     @Override
-    public ResourceLocation[] getTextures(int index) {
-        return multiModel.getTextures(index);
+    public void setColor(TextureColor textureColor) {
+        multiModel.setColor(textureColor);
     }
 
     @Override
-    public void setMultiModels(int index, ModelMultiBase models) {
-        multiModel.setMultiModels(index, models);
-    }
-
-    @Override
-    public ModelMultiBase[] getMultiModels() {
-        return multiModel.getMultiModels();
-    }
-
-    @Override
-    public void setColor(byte color) {
-        multiModel.setColor(color);
-    }
-
-    @Override
-    public byte getColor() {
+    public TextureColor getColor() {
         return multiModel.getColor();
     }
 
@@ -622,29 +624,41 @@ public class LittleMaidEntity extends CreatureEntity implements IEntityAdditiona
         multiModel.setContract(isContract);
     }
 
+    /**
+     * マルチモデルの使用テクスチャが契約時のものかどうか
+     * ※実際に契約状態かどうかをチェックする場合、
+     * {@link #isTamed()}か、
+     * {@link #getOwnerId()}の返り値が存在するかでチェックすること
+     * */
     @Override
-    public boolean getContract() {
-        return getOwnerId().isPresent();
+    public boolean isContract() {
+        return multiModel.isContract();
     }
 
     @Override
-    public void setTextureBox(int index, @Nullable TextureBox textureBox) {
-        multiModel.setTextureBox(index, textureBox);
+    public Optional<ModelMultiBase> getModel(@Nonnull Layer layer, @Nonnull Part part) {
+        return multiModel.getModel(layer, part);
     }
 
     @Override
-    public TextureBox[] getTextureBox() {
-        return multiModel.getTextureBox();
+    public Optional<ResourceLocation> getTexture(@Nonnull Layer layer, @Nonnull Part part, boolean isLight) {
+        return multiModel.getTexture(layer, part, isLight);
+    }
+
+    @Nonnull
+    @Override
+    public IModelCaps getCaps() {
+        return multiModel.getCaps();
     }
 
     @Override
-    public boolean canRenderArmor(int index) {
-        return multiModel.canRenderArmor(index);
+    public boolean isArmorVisible(Part part) {
+        return multiModel.isArmorVisible(part);
     }
 
     @Override
-    public void setCanRenderArmor(int index, boolean canRender) {
-        multiModel.setCanRenderArmor(index, canRender);
+    public boolean isArmorGlint(Part part) {
+        return multiModel.isArmorGlint(part);
     }
 
     //オーバーライドしなくても動くが、IEntityAdditionalSpawnDataが機能しない
