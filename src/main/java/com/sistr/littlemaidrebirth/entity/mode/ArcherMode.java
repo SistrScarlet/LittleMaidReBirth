@@ -6,22 +6,16 @@ import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.projectile.AbstractArrowEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.item.BowItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
-import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraftforge.common.util.FakePlayer;
 
-import java.util.List;
-
+//todo クロスボウとかも撃てるように調整
 public class ArcherMode implements IMode {
     private final CreatureEntity owner;
     private final IArcher archer;
@@ -140,12 +134,12 @@ public class ArcherMode implements IMode {
 
         int useCount = this.owner.getItemInUseMaxCount();
         if (20 <= useCount) {
-            //簡易誤射チェック、射線にターゲット以外が居る場合撃たない、まだ甘い
+            //簡易誤射チェック、射線にターゲット以外が居る場合は撃たない
             float distance = MathHelper.sqrt(distanceSq);
-            EntityRayTraceResult result = ProjectileHelper.rayTraceEntities(this.owner,
+            EntityRayTraceResult result = ProjectileHelper.rayTraceEntities(owner.world, owner,
                     this.owner.getEyePosition(1F), target.getEyePosition(1F),
                     this.owner.getBoundingBox().grow(distance), entity ->
-                    !entity.isSpectator() && entity.isAlive() && entity.canBeCollidedWith(), distanceSq);
+                            !entity.isSpectator() && entity.isAlive() && entity.canBeCollidedWith());
             if (result != null && result.getType() == RayTraceResult.Type.ENTITY) {
                 Entity entity = result.getEntity();
                 if (entity != target) {

@@ -123,7 +123,7 @@ public class CookingMode implements IMode {
         if (this.owner.isSneaking()) {
             this.owner.setSneaking(false);
         }
-        if (!this.owner.func_233580_cy_().withinDistance(furnacePos, 2)) {
+        if (!this.owner.getPosition().withinDistance(furnacePos, 2)) {
             if (--this.timeToRecalcPath <= 0) {
                 this.timeToRecalcPath = 10;
                 this.owner.getNavigator().tryMoveToXYZ(furnacePos.getX() + 0.5D, furnacePos.getY() + 0.5D, furnacePos.getZ() + 0.5D, 1);
@@ -220,7 +220,7 @@ public class CookingMode implements IMode {
     }
 
     public Optional<BlockPos> findFurnacePos() {
-        BlockPos ownerPos = owner.func_233580_cy_();
+        BlockPos ownerPos = owner.getPosition();
         //垂直方向に5ブロック調査
         for (int l = 0; l < 5; l++) {
             BlockPos center;

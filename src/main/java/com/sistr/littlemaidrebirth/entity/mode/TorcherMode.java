@@ -17,14 +17,13 @@ import net.minecraftforge.common.util.FakePlayer;
 
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Optional;
 import java.util.Set;
 
 //暗所探索->接地地点特定->設置
 //ライトエンジンが別スレ化してるので注意が必要かも
 //todo 若干重い
 public class TorcherMode implements IMode {
-    protected final CreatureEntity owner;
+    protected final CreatureEntity entity;
     protected final Set<BlockPos> canSpawnPoses = Sets.newHashSet();
     protected final IHasFakePlayer hasFakePlayer;
     protected final ITameable tameable;
@@ -33,8 +32,8 @@ public class TorcherMode implements IMode {
     protected int timeToIgnore;
     protected int timeToRePlace;
 
-    public TorcherMode(CreatureEntity owner, IHasFakePlayer hasFakePlayer, ITameable tameable) {
-        this.owner = owner;
+    public TorcherMode(CreatureEntity entity, IHasFakePlayer hasFakePlayer, ITameable tameable) {
+        this.entity = entity;
         this.hasFakePlayer = hasFakePlayer;
         this.tameable = tameable;
     }
@@ -46,12 +45,11 @@ public class TorcherMode implements IMode {
 
     @Override
     public boolean shouldExecute() {
-        Optional<Entity> optionalOwner = tameable.getOwner();
-        if (!optionalOwner.isPresent()) {
+        Entity owner = this.tameable.getOwner();
+        if (owner == null) {
             return false;
         }
-        Entity ownerOwner = optionalOwner.get();
-        if (12 * 12 < ownerOwner.getDistanceSq(owner) || 8 < owner.world.getLight(ownerOwner.func_233580_cy_())) {
+        if (12 * 12 < owner.getDistanceSq(entity) || 8 < entity.world.getLight(owner.getPosition())) {
             return false;
         }
 
@@ -62,10 +60,11 @@ public class TorcherMode implements IMode {
     //湧けるブロックを探索
     public Collection<BlockPos> findCanSpawnEnemyPoses() {
         Set<BlockPos> canSpawnEnemyPoses = Sets.newHashSet();
-        if (!tameable.getOwner().isPresent()) {
+        Entity owner = tameable.getOwner();
+        if (owner == null) {
             return canSpawnEnemyPoses;
         }
-        BlockPos ownerPos = tameable.getOwner().get().func_233580_cy_();
+        BlockPos ownerPos = owner.getPosition();
         //垂直方向に5ブロック調査
         for (int l = 0; l < 5; l++) {
             BlockPos center;
@@ -91,19 +90,19 @@ public class TorcherMode implements IMode {
                             continue;
                         }
                         //湧きつぶしの必要のない地点を除外
-                        if (owner.world.isAirBlock(checkPos)
-                                || !owner.world.isAirBlock(checkPos.up())
-                                || 8 < owner.world.getLight(checkPos.up())
-                                || !owner.world.getBlockState(checkPos).canEntitySpawn(
-                                owner.world, checkPos, EntityType.ZOMBIE)) {
+                        if (entity.world.isAirBlock(checkPos)
+                                || !entity.world.isAirBlock(checkPos.up())
+                                || 8 < entity.world.getLight(checkPos.up())
+                                || !entity.world.getBlockState(checkPos).canEntitySpawn(
+                                entity.world, checkPos, EntityType.ZOMBIE)) {
                             nowSearched.add(checkPos);
                             continue;
                         }
                         //見えないとこのブロックは除外し、これを起点とした調査も打ち切る
-                        BlockRayTraceResult result = owner.world.rayTraceBlocks(new RayTraceContext(
-                                owner.getEyePosition(1F),
+                        BlockRayTraceResult result = entity.world.rayTraceBlocks(new RayTraceContext(
+                                entity.getEyePosition(1F),
                                 new Vector3d(checkPos.getX() + 0.5F, checkPos.getY() + 1F, checkPos.getZ() + 0.5F),
-                                RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, owner));
+                                RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, entity));
                         if (result.getType() != RayTraceResult.Type.MISS && !result.getPos().equals(checkPos)) {
                             allSearched.add(checkPos);
                             nowSearched.remove(checkPos);
@@ -126,12 +125,12 @@ public class TorcherMode implements IMode {
 
     @Override
     public boolean shouldContinueExecuting() {
-        return !this.canSpawnPoses.isEmpty() && tameable.getOwnerId().isPresent();
+        return !this.canSpawnPoses.isEmpty();
     }
 
     @Override
     public void startExecuting() {
-        this.owner.getNavigator().clearPath();
+        this.entity.getNavigator().clearPath();
     }
 
     @Override
@@ -140,13 +139,13 @@ public class TorcherMode implements IMode {
         //ご主人からもっとも近い地点を選択
         if (pos == null) {
             //ご主人が居ない場合リターン(should~でチェックするので基本ありえない)
-            Entity ownerOwner = tameable.getOwner().orElse(null);
-            if (ownerOwner == null) {
+            Entity owner = this.tameable.getOwner();
+            if (owner == null) {
                 return;
             }
             //遠い地点の削除
             canSpawnPoses.removeIf(blockPos -> 8 * 8 <
-                    blockPos.distanceSq(ownerOwner.getPositionVec(), true));
+                    blockPos.distanceSq(owner.getPositionVec(), true));
             if (canSpawnPoses.isEmpty()) {
                 return;
             }
@@ -158,10 +157,10 @@ public class TorcherMode implements IMode {
                 //最近地点の選択
                 pos = canSpawnPoses.stream()
                         .min(Comparator.comparingDouble(blockPos ->
-                                blockPos.distanceSq(ownerOwner.getPositionVec(), true)
-                                        + blockPos.distanceSq(owner.getPositionVec(), true)))
+                                blockPos.distanceSq(owner.getPositionVec(), true)
+                                        + blockPos.distanceSq(entity.getPositionVec(), true)))
                         .get();
-                if (8 < owner.world.getLight(pos.up())) {
+                if (8 < entity.world.getLight(pos.up())) {
                     canSpawnPoses.remove(pos);
                     continue;
                 }
@@ -170,17 +169,17 @@ public class TorcherMode implements IMode {
             return;
         }
         //5秒経過しても置けないまたは明るい地点を無視
-        if (100 < ++this.timeToIgnore || 8 < owner.world.getLight(pos.up())) {
+        if (100 < ++this.timeToIgnore || 8 < entity.world.getLight(pos.up())) {
             this.canSpawnPoses.remove(pos);
             this.nextPlacePos = null;
             this.timeToIgnore = 0;
             return;
         }
         //距離が遠い場合は近づこうとする
-        if (2 * 2 < pos.distanceSq(owner.func_233580_cy_())) {
+        if (2 * 2 < pos.distanceSq(entity.getPosition())) {
             if (--this.timeToRecalcPath <= 0) {
                 this.timeToRecalcPath = 10;
-                owner.getNavigator().tryMoveToXYZ(pos.getX() + 0.5D, pos.getY() + 1, pos.getZ() + 0.5D, 1);
+                entity.getNavigator().tryMoveToXYZ(pos.getX() + 0.5D, pos.getY() + 1, pos.getZ() + 0.5D, 1);
             }
             return;
         }
@@ -188,19 +187,19 @@ public class TorcherMode implements IMode {
             return;
         }
         this.timeToRePlace = 10;
-        this.owner.getNavigator().clearPath();
-        Item item = owner.getHeldItemMainhand().getItem();
+        this.entity.getNavigator().clearPath();
+        Item item = entity.getHeldItemMainhand().getItem();
         if (!(item instanceof BlockItem)) {
             return;
         }
-        Vector3d start = owner.getEyePosition(1F);
+        Vector3d start = entity.getEyePosition(1F);
         Vector3d end = new Vector3d(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D);
-        BlockRayTraceResult result = owner.world.rayTraceBlocks(new RayTraceContext(
-                start, end, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this.owner));
+        BlockRayTraceResult result = entity.world.rayTraceBlocks(new RayTraceContext(
+                start, end, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, this.entity));
         hasFakePlayer.syncToFakePlayer();
         FakePlayer fakePlayer = hasFakePlayer.getFakePlayer();
         if (((BlockItem) item).tryPlace(new BlockItemUseContext(new ItemUseContext(fakePlayer, Hand.MAIN_HAND, result))).isSuccess()) {
-            owner.swingArm(Hand.MAIN_HAND);
+            entity.swingArm(Hand.MAIN_HAND);
         }
         hasFakePlayer.syncToOrigin();
         //接地如何に関わらずこの地点を消去

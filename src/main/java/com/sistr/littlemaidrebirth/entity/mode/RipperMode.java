@@ -53,7 +53,7 @@ public class RipperMode implements IMode {
                 this.owner.getPosZ() - searchRadius);
         return this.owner.world.getEntitiesInAABBexcluding(this.owner, bb, (entity) ->
                 entity instanceof LivingEntity && entity instanceof IForgeShearable
-                        && ((IForgeShearable) entity).isShearable(this.owner.getHeldItemMainhand(), this.owner.world, entity.func_233580_cy_())
+                        && ((IForgeShearable) entity).isShearable(this.owner.getHeldItemMainhand(), this.owner.world, entity.getPosition())
                         && this.owner.getEntitySenses().canSee(entity));
     }
 

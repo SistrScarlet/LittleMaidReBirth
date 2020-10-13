@@ -122,9 +122,9 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
         dst.prevRotationPitch = src.prevRotationPitch;
         dst.setRotationYawHead(src.getRotationYawHead());
         dst.fallDistance = src.fallDistance;
-        dst.func_241209_g_(src.getFireTimer());
+        dst.setFire(src.getFireTimer());
         dst.setAir(src.getAir());
-        dst.func_230245_c_(src.func_233570_aj_());
+        dst.setOnGround(src.isOnGround());
         dst.setInvulnerable(src.isInvulnerable());
         //dst.timeUntilPortal = src.timeUntilPortal;
         dst.setUniqueId(src.getUniqueID());
@@ -149,11 +149,11 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
         dst.maxHurtTime = src.maxHurtTime;
         dst.deathTime = src.deathTime;
         dst.setAbsorptionAmount(src.getAbsorptionAmount());
-        src.func_233645_dx_().field_233775_b_.values().forEach(srcInstance -> {
+        src.getAttributeManager().instanceMap.values().forEach(srcInstance -> {
             ModifiableAttributeInstance dstInstance = dst.getAttribute(srcInstance.getAttribute());
             if (dstInstance != null) {
                 dstInstance.setBaseValue(srcInstance.getBaseValue());
-                Collection<AttributeModifier> modifiers = srcInstance.func_225505_c_();
+                Collection<AttributeModifier> modifiers = srcInstance.getModifierListCopy();
                 for (AttributeModifier srcModifier : modifiers) {
                     if (srcModifier == null) {
                         continue;
@@ -162,7 +162,7 @@ public class LittleMaidFakePlayer implements IHasFakePlayer {
                     if (dstModifier != null) {
                         dstInstance.removeModifier(dstModifier);
                     }
-                    dstInstance.func_233767_b_(srcModifier);
+                    dstInstance.applyPersistentModifier(srcModifier);
                 }
             }
         });
