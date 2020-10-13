@@ -26,7 +26,7 @@ public class FreedomGoal extends WaterAvoidingRandomWalkingGoal {
     }
 
     public void setCenterPos() {
-        centerPos = creature.func_233580_cy_();
+        centerPos = creature.getPosition();
     }
 
     @Override
@@ -37,7 +37,7 @@ public class FreedomGoal extends WaterAvoidingRandomWalkingGoal {
     @Override
     public void startExecuting() {
         super.startExecuting();
-        if (!centerPos.withinDistance(creature.func_233580_cy_(), 16)) {
+        if (!centerPos.withinDistance(creature.getPosition(), 16)) {
             creature.attemptTeleport(
                     centerPos.getX() + 0.5F,
                     centerPos.getY() + 0.5F,

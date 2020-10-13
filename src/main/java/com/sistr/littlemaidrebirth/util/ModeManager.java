@@ -91,7 +91,7 @@ public class ModeManager {
                 return true;
             }
             for (Tag<Item> itemTag : itemTags) {
-                if (itemTag.func_230235_a_(item)) {
+                if (itemTag.contains(item)) {
                     return true;
                 }
             }

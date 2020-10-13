@@ -12,7 +12,6 @@ import net.minecraft.pathfinding.WalkNodeProcessor;
 import net.minecraft.util.math.BlockPos;
 
 import java.util.EnumSet;
-import java.util.Optional;
 
 public class EscortGoal extends Goal {
     private final CreatureEntity escort;
@@ -41,11 +40,10 @@ public class EscortGoal extends Goal {
         if (!this.tameable.getMovingState().equals(ITameable.ESCORT)) {
             return false;
         }
-        Optional<Entity> optional = this.tameable.getOwner();
-        if (!optional.isPresent()) {
+        Entity owner = this.tameable.getOwner();
+        if (owner == null) {
             return false;
         }
-        Entity owner = optional.get();
         if (owner.isSpectator()) {
             return false;
         }
@@ -91,7 +89,7 @@ public class EscortGoal extends Goal {
     }
 
     private void tryTeleport() {
-        BlockPos blockpos = this.owner.func_233580_cy_();
+        BlockPos blockpos = this.owner.getPosition();
 
         for (int i = 0; i < 10; ++i) {
             int x = this.getRandomInt(-3, 3);
@@ -117,7 +115,7 @@ public class EscortGoal extends Goal {
     }
 
     private boolean isTeleportable(BlockPos pos) {
-        PathNodeType type = WalkNodeProcessor.func_237231_a_(this.escort.world, pos.func_239590_i_());
+        PathNodeType type = WalkNodeProcessor.func_237231_a_(this.escort.world, pos.toMutable());
         if (type != PathNodeType.WALKABLE) {
             return false;
         }
@@ -125,7 +123,7 @@ public class EscortGoal extends Goal {
         if (blockstate.getBlock() instanceof LeavesBlock) {
             return false;
         }
-        BlockPos blockpos = pos.subtract(this.escort.func_233580_cy_());
+        BlockPos blockpos = pos.subtract(this.escort.getPosition());
         return this.escort.world.hasNoCollisions(this.escort, this.escort.getBoundingBox().offset(blockpos));
     }
 

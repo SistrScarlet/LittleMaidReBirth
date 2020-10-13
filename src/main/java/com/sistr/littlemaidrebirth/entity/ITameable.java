@@ -1,12 +1,11 @@
 package com.sistr.littlemaidrebirth.entity;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.DamageSource;
+import net.minecraft.entity.LivingEntity;
 
-import java.util.Optional;
+import javax.annotation.Nullable;
 import java.util.UUID;
 
+//ぶっちゃけ必要意義は微妙
 public interface ITameable {
 
     String NONE = "None";
@@ -14,22 +13,16 @@ public interface ITameable {
     String ESCORT = "Escort";
     String FREEDOM = "Freedom";
 
-    void writeTameable(CompoundNBT nbt);
-
-    void readTameable(CompoundNBT nbt);
-
-    Optional<Entity> getOwner();
+    @Nullable
+    LivingEntity getOwner();
 
     void setOwnerId(UUID id);
 
-    Optional<UUID> getOwnerId();
+    @Nullable
+    UUID getOwnerId();
 
     String getMovingState();
 
     void setMovingState(String movingState);
-
-    void onDeath(DamageSource cause);
-
-    boolean isFriend(Entity entity);
 
 }

@@ -12,8 +12,6 @@ public class LittleMaidReBirthMod {
 
     public static final String MODID = "littlemaidrebirth";
 
-    public static IProxy proxy = DistExecutor.runForDist(() -> ClientProxy::new, () -> ServerProxy::new);
-
     public LittleMaidReBirthMod() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.COMMON_CONFIG);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_CONFIG);
