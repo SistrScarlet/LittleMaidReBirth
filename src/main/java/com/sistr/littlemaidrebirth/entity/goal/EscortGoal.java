@@ -40,7 +40,7 @@ public class EscortGoal extends Goal {
         if (!this.tameable.getMovingState().equals(ITameable.ESCORT)) {
             return false;
         }
-        Entity owner = this.tameable.getOwner();
+        Entity owner = this.tameable.getTameOwner().orElse(null);
         if (owner == null) {
             return false;
         }

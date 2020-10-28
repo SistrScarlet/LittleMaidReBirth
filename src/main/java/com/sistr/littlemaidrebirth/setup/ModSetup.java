@@ -6,6 +6,9 @@ import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntitySpawnPlacementRegistry;
 import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.MobSpawnInfo;
 import net.minecraft.world.gen.Heightmap;
@@ -17,12 +20,12 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 @Mod.EventBusSubscriber(modid = LittleMaidReBirthMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ModSetup {
 
-    /*public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth") {
+    public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth") {
         @Override
         public ItemStack createIcon() {
             return new ItemStack(Items.CAKE);
         }
-    };*/
+    };
 
     public static void init(final FMLCommonSetupEvent event) {
         GlobalEntityTypeAttributes.put(Registration.LITTLE_MAID_MOB.get(),

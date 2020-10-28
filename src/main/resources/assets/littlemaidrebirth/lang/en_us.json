@@ -11,5 +11,8 @@
   "entity.littlemaidrebirth.little_maid_mob.Archer": "Archer",
   "entity.littlemaidrebirth.little_maid_mob.Cooking": "Cooking",
   "entity.littlemaidrebirth.little_maid_mob.Ripper": "Ripper",
-  "entity.littlemaidrebirth.little_maid_mob.Torcher": "Torcher"
+  "entity.littlemaidrebirth.little_maid_mob.Torcher": "Torcher",
+
+  "item.littlemaidrebirth.little_maid_spawn_egg": "Little Maid Spawn Egg"
+
 }

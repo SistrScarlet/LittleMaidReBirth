@@ -45,7 +45,7 @@ public class TorcherMode implements IMode {
 
     @Override
     public boolean shouldExecute() {
-        Entity owner = this.tameable.getOwner();
+        Entity owner = this.tameable.getTameOwner().orElse(null);
         if (owner == null) {
             return false;
         }
@@ -60,7 +60,7 @@ public class TorcherMode implements IMode {
     //湧けるブロックを探索
     public Collection<BlockPos> findCanSpawnEnemyPoses() {
         Set<BlockPos> canSpawnEnemyPoses = Sets.newHashSet();
-        Entity owner = tameable.getOwner();
+        Entity owner = tameable.getTameOwner().orElse(null);
         if (owner == null) {
             return canSpawnEnemyPoses;
         }
@@ -139,7 +139,7 @@ public class TorcherMode implements IMode {
         //ご主人からもっとも近い地点を選択
         if (pos == null) {
             //ご主人が居ない場合リターン(should~でチェックするので基本ありえない)
-            Entity owner = this.tameable.getOwner();
+            Entity owner = this.tameable.getTameOwner().orElse(null);
             if (owner == null) {
                 return;
             }

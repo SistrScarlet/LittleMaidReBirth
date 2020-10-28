@@ -13,9 +13,9 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '1.16.3-2.2.0'
+version = '1.16.3-2.2.1'
 group = 'com.sistr.littlemaidrebirth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'LMReBirth-Forge'
+archivesBaseName = 'LMRB-Fo'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
@@ -85,11 +85,11 @@ minecraft {
     }
 }
 
-repositories {
+/*repositories {
     flatDir {
         dirs "repositories"
     }
-}
+}*/
 
 dependencies {
     // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
@@ -97,7 +97,7 @@ dependencies {
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
     minecraft 'net.minecraftforge:forge:1.16.3-34.1.0'
 
-    compile fg.deobf(fileTree(dir: './repositories', include: '*.jar'))
+    //compile fg.deobf(fileTree(dir: './repositories', include: '*.jar'))
     compile fileTree(dir: './mods', include: '*.jar')
 
     // You may put jars on which you depend on in ./libs or you may define them like so..

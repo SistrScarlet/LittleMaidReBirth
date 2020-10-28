@@ -158,7 +158,6 @@ public class LittleMaidContainer extends Container {
     }
 
     private void layoutMaidInventorySlots() {
-        //メイドサーン
         addSlotBox(maidInventory, 0, 8, 76, 9, 18, 2, 18);
 
         //main/off

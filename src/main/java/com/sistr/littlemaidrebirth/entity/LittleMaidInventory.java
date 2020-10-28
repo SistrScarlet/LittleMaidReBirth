@@ -1,4 +1,4 @@
-package com.sistr.littlemaidrebirth;
+package com.sistr.littlemaidrebirth.entity;
 
 import com.google.common.collect.Lists;
 import com.sistr.littlemaidrebirth.entity.IHasInventory;

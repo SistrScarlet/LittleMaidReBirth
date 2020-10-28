@@ -1,68 +1,50 @@
 package com.sistr.littlemaidrebirth.entity;
 
-import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.datasync.DataParameter;
 import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.world.server.ServerWorld;
 
 import java.util.Optional;
 import java.util.UUID;
 
 //EntityDataManagerのregisterをこっちでやるとエラー吐いてダメなので個々のエンティティクラスでやってもらう形に
+//なお本体のTameableEntity化に合わせgetTameOwner()系の処理は消した
 public class DefaultTameable implements ITameable {
     private final DataParameter<String> moving_state;
-    private final DataParameter<Optional<UUID>> ownerId;
-    private final CreatureEntity tameable;
     private final EntityDataManager dataManager;
 
-    public DefaultTameable(CreatureEntity tameable, EntityDataManager dataManager,
-                           DataParameter<String> moving_state, DataParameter<Optional<UUID>> ownerId) {
-        this.tameable = tameable;
+    public DefaultTameable(EntityDataManager dataManager, DataParameter<String> moving_state) {
         this.dataManager = dataManager;
         this.moving_state = moving_state;
-        this.ownerId = ownerId;
     }
 
     public void write(CompoundNBT nbt) {
-        //tameableと統合したのでownerIdの読み込みは削除した
-
         nbt.putString("MovingState", getMovingState());
     }
 
     public void read(CompoundNBT nbt) {
-        //tameableと統合したが、これを残しておかないと契約状態がリセットされる危険性がある
-        if (nbt.hasUniqueId("OwnerId")) {
-            this.setOwnerId(nbt.getUniqueId("OwnerId"));
-        }
-
         setMovingState(nbt.getString("MovingState"));
     }
 
     @Override
-    public LivingEntity getOwner() {
-        UUID ownerId = this.getOwnerId();
-        if (ownerId == null) return null;
-        PlayerEntity player = this.tameable.world.getPlayerByUuid(ownerId);
-        if (player != null) {
-            return player;
-        }
-        if (this.tameable.world instanceof ServerWorld) {
-            return (LivingEntity) ((ServerWorld) this.tameable.world).getEntityByUuid(ownerId);
-        }
-        return null;
+    public Optional<LivingEntity> getTameOwner() {
+        return Optional.empty();
     }
 
     @Override
-    public void setOwnerId(UUID id) {
-        this.dataManager.set(ownerId, Optional.of(id));
+    public void setTameOwnerUuid(UUID id) {
+        
     }
 
     @Override
-    public UUID getOwnerId() {
-        return this.dataManager.get(ownerId).orElse(null);
+    public Optional<UUID> getTameOwnerUuid() {
+        return Optional.empty();
+    }
+
+    @Override
+    public boolean hasTameOwner() {
+        return false;
     }
 
     @Override

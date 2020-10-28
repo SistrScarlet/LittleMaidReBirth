@@ -2,14 +2,12 @@ package com.sistr.littlemaidrebirth.entity;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.sistr.littlemaidrebirth.LittleMaidInventory;
 import com.sistr.littlemaidrebirth.entity.goal.EscortGoal;
 import com.sistr.littlemaidrebirth.entity.goal.FreedomGoal;
 import com.sistr.littlemaidrebirth.entity.goal.HealMyselfGoal;
 import com.sistr.littlemaidrebirth.entity.goal.WaitGoal;
 import com.sistr.littlemaidrebirth.entity.mode.*;
 import com.sistr.littlemaidrebirth.setup.Registration;
-import net.minecraft.block.Blocks;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.attributes.AttributeModifierMap;
 import net.minecraft.entity.ai.attributes.Attributes;
@@ -35,7 +33,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.IServerWorld;
 import net.minecraft.world.IWorld;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
@@ -69,7 +66,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     private static final DataParameter<Boolean> AIMING = EntityDataManager.createKey(LittleMaidEntity.class, DataSerializers.BOOLEAN);
     private final IHasInventory littleMaidInventory = new LittleMaidInventory(this);
     //todo お給料機能とテイム機能一緒にした方がよさげ
-    private final DefaultTameable tameable = new DefaultTameable(this, this.dataManager, MOVING_STATE, TameableEntity.OWNER_UNIQUE_ID);
+    private final DefaultTameable tameable = new DefaultTameable(this.dataManager, MOVING_STATE);
     private final TickTimeBaseNeedSalary needSalary = new TickTimeBaseNeedSalary(this, this,
             7, Lists.newArrayList(Items.SUGAR));
     //todo モードの追加方法を変えるべし
@@ -190,6 +187,10 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         this.readInventory(compound);
 
         this.tameable.read(compound);
+        //2.2.0以前からの引継ぎ
+        if (compound.hasUniqueId("OwnerId")) {
+            this.setTameOwnerUuid(compound.getUniqueId("OwnerId"));
+        }
 
         this.readSalary(compound);
 
@@ -258,7 +259,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     public void livingTick() {
         updateArmSwingProgress();
         super.livingTick();
-        if (isTamed()) needSalary.tick();
+        if (hasTameOwner()) needSalary.tick();
         //アイテム回収処理
         fakePlayer.livingTick();
     }
@@ -356,7 +357,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 return true;
             }
             //同じ主を持つ者はフレンド
-            if (entity instanceof ITameable && ownerId.equals(((ITameable) entity).getOwnerId())
+            if (entity instanceof ITameable && ownerId.equals(((ITameable) entity).getTameOwnerUuid().orElse(null))
                     || entity instanceof TameableEntity && ownerId.equals(((TameableEntity) entity).getOwnerId())) {
                 return true;
             }
@@ -400,7 +401,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             }
             return ActionResultType.PASS;
         }
-        if (isTamed()) {
+        if (hasTameOwner()) {
             if (stack.getItem() == Items.SUGAR) {
                 return changeState(player, stack);
             }
@@ -510,6 +511,26 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     //テイム関連
 
     @Override
+    public Optional<LivingEntity> getTameOwner() {
+        return Optional.ofNullable(getOwner());
+    }
+
+    @Override
+    public void setTameOwnerUuid(UUID id) {
+        setOwnerId(id);
+    }
+
+    @Override
+    public Optional<UUID> getTameOwnerUuid() {
+        return Optional.ofNullable(getOwnerId());
+    }
+
+    @Override
+    public boolean hasTameOwner() {
+        return getTameOwnerUuid().isPresent();
+    }
+
+    @Override
     public String getMovingState() {
         return tameable.getMovingState();
     }
@@ -520,7 +541,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
     @Override
     public boolean isTamed() {
-        return getOwnerId() != null;
+        return hasTameOwner();
     }
 
     //お給料
@@ -639,8 +660,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     /**
      * マルチモデルの使用テクスチャが契約時のものかどうか
      * ※実際に契約状態かどうかをチェックする場合、
-     * {@link #isTamed()}か、
-     * {@link #getOwnerId()}の返り値が存在するかでチェックすること
+     * {@link #hasTameOwner()}か、
+     * {@link #getTameOwnerUuid()}の返り値が存在するかでチェックすること
      * */
     @Override
     public boolean isContract() {
