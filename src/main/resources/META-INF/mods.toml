@@ -16,19 +16,19 @@ modId="littlemaidrebirth" #mandatory
 # The version number of the mod - there's a few well known ${} variables useable here or just hardcode it
 version="${file.jarVersion}" #mandatory
  # A display name for the mod
-displayName="Little Maid ReBirth" #mandatory
+displayName="LittleMaid ReBirth" #mandatory
 # A URL to query for updates for this mod. See the JSON update specification <here>
 #updateJSONURL="http://myurl.me/" #optional
 # A URL for the "homepage" for this mod, displayed in the mod UI
-#displayURL="http://example.com/" #optional
+displayURL="https://forum.civa.jp/viewtopic.php?f=3&t=119" #optional
 # A file name (in the root of the mod JAR) containing a logo for display
-#logoFile="littlemaidrebirth.png" #optional
+logoFile="littlemaidrebirth.png" #optional
 # A text field displayed in the mod UI
-credits="Created by MMM, remixed by EMB4 & Verclene, patched by firis-games" #optional
+credits="Created by MMM, remixed by EMB4 & Verclene, patched by firis-games, remade by Sistr" #optional
 # A text field displayed in the mod UI
 authors="Sistr" #optional
 # The description text for the mod (multi line!) (#mandatory)
-description=""
+description="いろいろ手伝ってくれたりくれなかったりする、ちいさなメイドさんを追加するMOD"
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.littlemaidrebirth]] #optional
     # the modid of the dependency

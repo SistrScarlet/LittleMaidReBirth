@@ -11,6 +11,7 @@ import net.minecraft.entity.item.ItemEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShearsItem;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.IShearable;
@@ -21,14 +22,16 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-public class RipperMode implements IMode {
+public class RipperMode implements Mode {
     protected final CreatureEntity owner;
+    protected final int radius;
     protected final List<Entity> shearable = Lists.newArrayList();
     protected int timeToRecalcPath;
     protected int timeToIgnore;
 
-    public RipperMode(CreatureEntity owner) {
+    public RipperMode(CreatureEntity owner, int radius) {
         this.owner = owner;
+        this.radius = radius;
     }
 
     @Override
@@ -43,14 +46,13 @@ public class RipperMode implements IMode {
     }
 
     public Collection<Entity> findCanShearableMob() {
-        float searchRadius = 16;
         AxisAlignedBB bb = new AxisAlignedBB(
-                this.owner.getPosX() + searchRadius,
-                this.owner.getPosY() + searchRadius / 4,
-                this.owner.getPosZ() + searchRadius,
-                this.owner.getPosX() - searchRadius,
-                this.owner.getPosY() - searchRadius / 4,
-                this.owner.getPosZ() - searchRadius);
+                this.owner.getPosX() + radius,
+                this.owner.getPosY() + radius / 4,
+                this.owner.getPosZ() + radius,
+                this.owner.getPosX() - radius,
+                this.owner.getPosY() - radius / 4,
+                this.owner.getPosZ() - radius);
         return this.owner.world.getEntitiesInAABBexcluding(this.owner, bb, (entity) ->
                 entity instanceof LivingEntity && entity instanceof IShearable
                         && ((IShearable) entity).isShearable(this.owner.getHeldItemMainhand(), this.owner.world, entity.getPosition())
@@ -120,6 +122,16 @@ public class RipperMode implements IMode {
 
     @Override
     public void endModeTask() {
+
+    }
+
+    @Override
+    public void writeModeData(CompoundNBT tag) {
+
+    }
+
+    @Override
+    public void readModeData(CompoundNBT tag) {
 
     }
 

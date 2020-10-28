@@ -2,7 +2,7 @@ package com.sistr.littlemaidrebirth.util;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.sistr.littlemaidrebirth.entity.mode.IMode;
+import com.sistr.littlemaidrebirth.entity.mode.Mode;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tags.Tag;
@@ -22,7 +22,7 @@ public class ModeManager {
         MODES.put(mode, items);
     }
 
-    public boolean containModeItem(IMode mode, ItemStack stack) {
+    public boolean containModeItem(Mode mode, ItemStack stack) {
         ModeItems modeItems = MODES.get(mode.getClass());
         if (modeItems == null) return false;
         return modeItems.contains(stack);

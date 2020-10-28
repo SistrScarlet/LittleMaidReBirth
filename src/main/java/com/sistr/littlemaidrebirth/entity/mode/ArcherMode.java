@@ -1,34 +1,29 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
-import com.sistr.littlemaidrebirth.entity.IArcher;
-import com.sistr.littlemaidrebirth.entity.IHasFakePlayer;
+import com.sistr.littlemaidrebirth.entity.AimingPoseable;
+import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.projectile.AbstractArrowEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.item.BowItem;
-import net.minecraft.item.CrossbowItem;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.ActionResultType;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.Hand;
-import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraftforge.common.util.FakePlayer;
-
-import java.util.List;
+import net.sistr.lmml.entity.compound.SoundPlayable;
+import net.sistr.lmml.resource.util.LMSounds;
 
 //todo クロスボウとかも撃てるように調整
-public class ArcherMode implements IMode {
-    private final CreatureEntity owner;
-    private final IArcher archer;
+public class ArcherMode implements Mode {
+    private final CreatureEntity mob;
+    private final AimingPoseable archer;
     private final double moveSpeedAmp;
-    private final IHasFakePlayer hasFakePlayer;
+    private final FakePlayerSupplier hasFakePlayer;
     private int attackCooldown;
     private final float maxAttackDistance;
     private int seeTime;
@@ -36,8 +31,8 @@ public class ArcherMode implements IMode {
     private boolean strafingBackwards;
     private int strafingTime = -1;
 
-    public ArcherMode(CreatureEntity owner, IArcher archer, IHasFakePlayer hasFakePlayer, double moveSpeedAmpIn, int attackCooldownIn, float maxAttackDistanceIn) {
-        this.owner = owner;
+    public ArcherMode(CreatureEntity mob, AimingPoseable archer, FakePlayerSupplier hasFakePlayer, double moveSpeedAmpIn, int attackCooldownIn, float maxAttackDistanceIn) {
+        this.mob = mob;
         this.archer = archer;
         this.hasFakePlayer = hasFakePlayer;
         this.moveSpeedAmp = moveSpeedAmpIn;
@@ -51,26 +46,25 @@ public class ArcherMode implements IMode {
     }
 
     public boolean shouldExecute() {
-        return this.owner.getAttackTarget() != null;
+        return this.mob.getAttackTarget() != null && this.mob.getAttackTarget().isAlive();
     }
 
     public boolean shouldContinueExecuting() {
-        return this.shouldExecute() || !this.owner.getNavigator().noPath();
+        return this.shouldExecute();
     }
 
     public void startExecuting() {
-        this.owner.setAggroed(true);
+        this.mob.setAggroed(true);
         this.archer.setAimingBow(true);
     }
 
-    //todo 遠すぎる場合に近づかせる
     public void tick() {
-        LivingEntity target = this.owner.getAttackTarget();
+        LivingEntity target = this.mob.getAttackTarget();
         if (target == null) {
             return;
         }
-        double distanceSq = this.owner.getDistanceSq(target.getPosX(), target.getPosY(), target.getPosZ());
-        boolean canSee = this.owner.getEntitySenses().canSee(target);
+        double distanceSq = this.mob.getDistanceSq(target.getPosX(), target.getPosY(), target.getPosZ());
+        boolean canSee = this.mob.getEntitySenses().canSee(target);
         boolean hasSeeTime = 0 < this.seeTime;
         if (canSee != hasSeeTime) {
             this.seeTime = 0;
@@ -83,19 +77,19 @@ public class ArcherMode implements IMode {
         }
 
         if (distanceSq < this.maxAttackDistance && 20 <= this.seeTime) {
-            this.owner.getNavigator().clearPath();
+            this.mob.getNavigator().clearPath();
             ++this.strafingTime;
         } else {
-            this.owner.getNavigator().tryMoveToEntityLiving(target, this.moveSpeedAmp);
+            this.mob.getNavigator().tryMoveToEntityLiving(target, this.moveSpeedAmp);
             this.strafingTime = -1;
         }
 
         if (20 <= this.strafingTime) {
-            if ((double) this.owner.getRNG().nextFloat() < 0.3D) {
+            if ((double) this.mob.getRNG().nextFloat() < 0.3D) {
                 this.strafingClockwise = !this.strafingClockwise;
             }
 
-            if ((double) this.owner.getRNG().nextFloat() < 0.3D) {
+            if ((double) this.mob.getRNG().nextFloat() < 0.3D) {
                 this.strafingBackwards = !this.strafingBackwards;
             }
 
@@ -103,7 +97,7 @@ public class ArcherMode implements IMode {
         }
 
         if (this.strafingTime < 0) {
-            this.owner.getLookController().setLookPositionWithEntity(target, 30.0F, 30.0F);
+            this.mob.getLookController().setLookPositionWithEntity(target, 30.0F, 30.0F);
         } else {
             if (distanceSq > (double) (this.maxAttackDistance * 0.75F)) {
                 this.strafingBackwards = false;
@@ -111,42 +105,42 @@ public class ArcherMode implements IMode {
                 this.strafingBackwards = true;
             }
 
-            this.owner.getMoveHelper().strafe(this.strafingBackwards ? -0.5F : 0.5F, this.strafingClockwise ? 0.5F : -0.5F);
-            this.owner.faceEntity(target, 30.0F, 30.0F);
+            this.mob.getMoveHelper().strafe(this.strafingBackwards ? -0.5F : 0.5F, this.strafingClockwise ? 0.5F : -0.5F);
+            this.mob.faceEntity(target, 30.0F, 30.0F);
         }
 
-        if (!this.owner.isHandActive()) {
+        FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+        if (!fakePlayer.isHandActive()) {
             if (this.seeTime >= -60) {
                 this.archer.setAimingBow(true);
 
-                hasFakePlayer.syncToFakePlayer();
-                FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+                if (this.mob instanceof SoundPlayable) {
+                    ((SoundPlayable)mob).play(LMSounds.SIGHTING);
+                }
+
                 ItemStack stack = fakePlayer.getHeldItemMainhand();
-                stack.useItemRightClick(owner.world, fakePlayer, Hand.MAIN_HAND);
-                hasFakePlayer.syncToOrigin();
+                stack.useItemRightClick(mob.world, fakePlayer, Hand.MAIN_HAND);
             }
             return;
         }
 
+        //見えないなら
         if (!canSee) {
             if (this.seeTime < -60) {
                 this.archer.setAimingBow(false);
 
-                hasFakePlayer.syncToFakePlayer();
-                FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
                 fakePlayer.resetActiveHand();
-                hasFakePlayer.syncToOrigin();
             }
             return;
         }
 
-        int useCount = this.owner.getItemInUseMaxCount();
+        int useCount = fakePlayer.getItemInUseMaxCount();
         if (20 <= useCount) {
             //簡易誤射チェック、射線にターゲット以外が居る場合は撃たない
             float distance = MathHelper.sqrt(distanceSq);
-            EntityRayTraceResult result = ProjectileHelper.rayTraceEntities(owner.world, owner,
-                    this.owner.getEyePosition(1F), target.getEyePosition(1F),
-                    this.owner.getBoundingBox().grow(distance), entity ->
+            EntityRayTraceResult result = ProjectileHelper.rayTraceEntities(mob.world, mob,
+                    this.mob.getEyePosition(1F), target.getEyePosition(1F),
+                    this.mob.getBoundingBox().grow(distance), entity ->
                             !entity.isSpectator() && entity.isAlive() && entity.canBeCollidedWith());
             if (result != null && result.getType() == RayTraceResult.Type.ENTITY) {
                 Entity entity = result.getEntity();
@@ -155,29 +149,42 @@ public class ArcherMode implements IMode {
                 }
             }
 
-            this.archer.setAimingBow(false);
+            fakePlayer.rotationYaw = this.mob.rotationYaw;
+            fakePlayer.rotationPitch = this.mob.rotationPitch;
+            fakePlayer.setPosition(mob.getPosX(), mob.getPosY(), mob.getPosZ());
 
-            hasFakePlayer.syncToFakePlayer();
-            FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
             fakePlayer.stopActiveHand();
-            hasFakePlayer.syncToOrigin();
+
+            if (this.mob instanceof SoundPlayable) {
+                ((SoundPlayable)mob).play(LMSounds.SHOOT);
+            }
         }
 
     }
 
     public void resetTask() {
-        this.owner.setAggroed(false);
+        this.mob.setAggroed(false);
         this.seeTime = 0;
         this.archer.setAimingBow(false);
 
-        hasFakePlayer.syncToFakePlayer();
+        this.mob.getNavigator().clearPath();
+
         FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
         fakePlayer.resetActiveHand();
-        hasFakePlayer.syncToOrigin();
     }
 
     @Override
     public void endModeTask() {
+
+    }
+
+    @Override
+    public void writeModeData(CompoundNBT tag) {
+
+    }
+
+    @Override
+    public void readModeData(CompoundNBT tag) {
 
     }
 

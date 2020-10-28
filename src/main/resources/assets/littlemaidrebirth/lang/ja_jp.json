@@ -2,16 +2,19 @@
   "entity.littlemaidrebirth.little_maid_mob": "リトルメイド",
   "entity.littlemaidrebirth.little_maid_mob.InsideSkirt": "InsideSkirt",
 
-  "entity.littlemaidrebirth.little_maid_mob.None": "からっぽ",
-  "entity.littlemaidrebirth.little_maid_mob.Wait": "待機",
-  "entity.littlemaidrebirth.little_maid_mob.Escort": "従者",
-  "entity.littlemaidrebirth.little_maid_mob.Freedom": "自由人",
+  "state.littlemaidrebirth.None": "からっぽ",
+  "state.littlemaidrebirth.Wait": "待機",
+  "state.littlemaidrebirth.Escort": "従者",
+  "state.littlemaidrebirth.Freedom": "自由人",
 
-  "entity.littlemaidrebirth.little_maid_mob.Fencer": "剣士",
-  "entity.littlemaidrebirth.little_maid_mob.Archer": "射手",
-  "entity.littlemaidrebirth.little_maid_mob.Cooking": "お料理係",
-  "entity.littlemaidrebirth.little_maid_mob.Ripper": "毛狩り隊",
-  "entity.littlemaidrebirth.little_maid_mob.Torcher": "照明係",
+  "mode.littlemaidrebirth.Fencer": "剣士",
+  "mode.littlemaidrebirth.Archer": "射手",
+  "mode.littlemaidrebirth.Cooking": "お料理係",
+  "mode.littlemaidrebirth.Ripper": "毛狩り隊",
+  "mode.littlemaidrebirth.Torcher": "照明係",
 
-  "item.littlemaidrebirth.little_maid_spawn_egg": "リトルメイドのスポーンエッグ"
+  "item.littlemaidrebirth.little_maid_spawn_egg": "リトルメイドのスポーンエッグ",
+
+  "itemGroup.littlemaidrebirth.littlemaidrebirth": "LittleMaid ReBirth"
+
 }

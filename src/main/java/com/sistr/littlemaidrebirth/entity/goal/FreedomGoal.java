@@ -1,49 +1,60 @@
 package com.sistr.littlemaidrebirth.entity.goal;
 
-import com.sistr.littlemaidrebirth.entity.ITameable;
+import com.sistr.littlemaidrebirth.entity.Tameable;
 import net.minecraft.entity.CreatureEntity;
+import net.minecraft.entity.ai.RandomPositionGenerator;
 import net.minecraft.entity.ai.goal.WaterAvoidingRandomWalkingGoal;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
-import javax.annotation.Nullable;
 import java.util.EnumSet;
 
 //todo 自由移動
 public class FreedomGoal extends WaterAvoidingRandomWalkingGoal {
     private BlockPos centerPos;
-    private final ITameable tameable;
+    private final Tameable tameable;
+    private final double distanceSq;
 
-    public FreedomGoal(CreatureEntity creature, ITameable tameable, double speedIn) {
+    public FreedomGoal(CreatureEntity creature, Tameable tameable, double speedIn, double distance) {
         super(creature, speedIn);
         this.tameable = tameable;
+        this.distanceSq = distance * distance;
         setMutexFlags(EnumSet.of(Flag.MOVE));
-    }
-
-    public FreedomGoal(CreatureEntity creature, double speedIn, float probabilityIn, ITameable tameable) {
-        super(creature, speedIn, probabilityIn);
-        this.tameable = tameable;
-    }
-
-    public void setCenterPos() {
-        centerPos = creature.getPosition();
     }
 
     @Override
     public boolean shouldExecute() {
-        return centerPos != null && tameable.getMovingState().equals(ITameable.FREEDOM) && super.shouldExecute();
+        centerPos = null;
+        if (tameable.getTameOwnerUuid().isPresent()) {
+            if (!tameable.getMovingState().equals(Tameable.FREEDOM)) {
+                return false;
+            }
+            centerPos = tameable.getFollowPos().orElse(null);
+            if (centerPos == null) centerPos = this.creature.getPosition();
+        }
+        return super.shouldExecute();
     }
 
     @Override
-    public void startExecuting() {
-        super.startExecuting();
-        if (!centerPos.withinDistance(creature.getPosition(), 16)) {
-            creature.attemptTeleport(
-                    centerPos.getX() + 0.5F,
-                    centerPos.getY() + 0.5F,
-                    centerPos.getZ() + 0.5F,
-                    true);
+    public void tick() {
+        super.tick();
+        if (centerPos == null) {
+            return;
         }
+        if (centerPos.distanceSq(creature.getPositionVec(), true) < distanceSq) {
+            return;
+        }
+        creature.getNavigator().clearPath();
+        Vec3d pos = RandomPositionGenerator.findRandomTargetBlockTowards(creature, 5, 5,
+                new Vec3d(centerPos.getX(), centerPos.getY(), centerPos.getZ()));
+        if (pos != null) {
+            creature.getNavigator().tryMoveToXYZ(centerPos.getX(), centerPos.getY(), centerPos.getZ(), speed);
+            return;
+        }
+        if (creature.world.hasNoCollisions(creature.getBoundingBox().offset(creature.getPositionVec().scale(-1)).offset(centerPos))) {
+            creature.teleportKeepLoaded(centerPos.getX() + 0.5D, centerPos.getY(), centerPos.getZ() + 0.5D);
+        }
+
     }
 
     @Override
@@ -52,20 +63,4 @@ public class FreedomGoal extends WaterAvoidingRandomWalkingGoal {
         centerPos = null;
     }
 
-    @Nullable
-    @Override
-    protected Vec3d getPosition() {
-        Vec3d superPos = super.getPosition();
-        for (int i = 0; i < 3; i++) {
-            if (superPos == null) {
-                return null;
-            }
-            if (!centerPos.withinDistance(superPos, 16)) {
-                superPos = super.getPosition();
-                continue;
-            }
-            return superPos;
-        }
-        return creature.getPositionVec();
-    }
 }

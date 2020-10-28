@@ -12,9 +12,9 @@ import net.minecraft.util.SoundEvents;
 import java.util.Collection;
 import java.util.Set;
 
-public class TickTimeBaseNeedSalary implements INeedSalary {
+public class TickTimeBaseNeedSalary implements NeedSalary {
     private final LivingEntity owner;
-    private final IHasInventory hasInventory;
+    private final InventorySupplier hasInventory;
     private final int maxSalary;
     private final Set<Item> salaries = Sets.newHashSet();
     private int salary;
@@ -22,7 +22,7 @@ public class TickTimeBaseNeedSalary implements INeedSalary {
     private boolean isStrike;
     private int checkInventoryCool;
 
-    public TickTimeBaseNeedSalary(LivingEntity owner, IHasInventory hasInventory, int maxSalary, Collection<Item> salaries) {
+    public TickTimeBaseNeedSalary(LivingEntity owner, InventorySupplier hasInventory, int maxSalary, Collection<Item> salaries) {
         this.owner = owner;
         this.salaries.addAll(salaries);
         this.maxSalary = maxSalary;

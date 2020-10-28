@@ -2,6 +2,7 @@ package com.sistr.littlemaidrebirth.setup;
 
 import com.sistr.littlemaidrebirth.Config;
 import com.sistr.littlemaidrebirth.LittleMaidReBirthMod;
+import com.sistr.littlemaidrebirth.network.Networking;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
@@ -26,6 +27,8 @@ public class ModSetup {
     };
 
     public static void init(final FMLCommonSetupEvent event) {
+        Networking.registerMessages();
+
         //メイドさんのスポーンバイオーム
         List<BiomeDictionary.Type> spawnBiomeList = new ArrayList<>();
         spawnBiomeList.add(BiomeDictionary.Type.WET);

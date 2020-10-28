@@ -1,6 +1,6 @@
 package com.sistr.littlemaidrebirth.client;
 
-import com.sistr.littlemaidrebirth.entity.ITameable;
+import com.sistr.littlemaidrebirth.entity.Tameable;
 import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
 import net.minecraft.client.renderer.entity.EntityRendererManager;
 import net.minecraftforge.api.distmarker.Dist;
@@ -19,8 +19,8 @@ public class MaidModelRenderer extends MultiModelRenderer<LittleMaidEntity> {
     @Override
     public void syncCaps(LittleMaidEntity entity, ModelMultiBase model, float partialTicks) {
         super.syncCaps(entity, model, partialTicks);
-        model.setCapsValue(IModelCaps.caps_aimedBow, entity.getAimingBow());
-        model.setCapsValue(IModelCaps.caps_isWait, entity.getMovingState().equals(ITameable.WAIT));
+        model.setCapsValue(IModelCaps.caps_aimedBow, entity.isAimingBow());
+        model.setCapsValue(IModelCaps.caps_isWait, entity.getMovingState().equals(Tameable.WAIT));
         model.setCapsValue(IModelCaps.caps_isContract, entity.getOwnerId() != null);
     }
 

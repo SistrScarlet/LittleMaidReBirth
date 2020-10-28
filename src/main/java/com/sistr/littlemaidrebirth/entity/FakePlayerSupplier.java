@@ -2,12 +2,8 @@ package com.sistr.littlemaidrebirth.entity;
 
 import net.minecraftforge.common.util.FakePlayer;
 
-public interface IHasFakePlayer {
+public interface FakePlayerSupplier {
 
     FakePlayer getFakePlayer();
-
-    void syncToFakePlayer();
-
-    void syncToOrigin();
 
 }

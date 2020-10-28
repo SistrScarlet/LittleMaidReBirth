@@ -1,28 +1,30 @@
 package com.sistr.littlemaidrebirth.entity;
 
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.util.math.BlockPos;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 import java.util.UUID;
 
-//ぶっちゃけ必要意義は微妙
-public interface ITameable {
+public interface Tameable {
 
     String NONE = "None";
     String WAIT = "Wait";
     String ESCORT = "Escort";
     String FREEDOM = "Freedom";
 
-    @Nullable
-    LivingEntity getOwner();
+    Optional<LivingEntity> getTameOwner();
 
-    void setOwnerId(UUID id);
+    void setTameOwnerUuid(UUID id);
 
-    @Nullable
-    UUID getOwnerId();
+    Optional<UUID> getTameOwnerUuid();
+
+    boolean hasTameOwner();
 
     String getMovingState();
 
     void setMovingState(String movingState);
+
+    Optional<BlockPos> getFollowPos();
 
 }

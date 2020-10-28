@@ -9,57 +9,67 @@ import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
 
 import javax.annotation.Nullable;
 
-public class LittleMaidContainer extends Container {
+public class LittleMaidContainer extends Container implements HasGuiEntitySupplier {
     private final InvWrapper playerInventory;
     private final InvWrapper maidInventory;
     private final IInventory handsInventory = new Inventory(2) {
         @Override
         public void setInventorySlotContents(int index, ItemStack stack) {
             super.setInventorySlotContents(index, stack);
-            if (owner == null) return;
-            owner.setItemStackToSlot(EquipmentSlotType.fromSlotTypeAndIndex(EquipmentSlotType.Group.HAND, index), stack);
+            if (maid == null) return;
+            maid.setItemStackToSlot(EquipmentSlotType.fromSlotTypeAndIndex(EquipmentSlotType.Group.HAND, index), stack);
         }
     };
     private final IInventory armorsInventory = new Inventory(4) {
         @Override
         public void setInventorySlotContents(int index, ItemStack stack) {
             super.setInventorySlotContents(index, stack);
-            if (owner == null) return;
-            owner.setItemStackToSlot(EquipmentSlotType.fromSlotTypeAndIndex(EquipmentSlotType.Group.ARMOR, index), stack);
+            if (maid == null) return;
+            maid.setItemStackToSlot(EquipmentSlotType.fromSlotTypeAndIndex(EquipmentSlotType.Group.ARMOR, index), stack);
         }
     };
     @Nullable
-    private final LittleMaidEntity owner;
+    private final LittleMaidEntity maid;
 
-    public LittleMaidContainer(int id, PlayerInventory inventory) {
-        this(id, inventory, null);
+    public LittleMaidContainer(int windowId, PlayerInventory inv, LittleMaidEntity maid) {
+        this(windowId, inv, maid.getEntityId());
     }
 
-    public LittleMaidContainer(int id, PlayerInventory playerInventory, @Nullable LittleMaidEntity owner) {
-        super(Registration.LITTLE_MAID_CONTAINER.get(), id);
-        this.playerInventory = new InvWrapper(playerInventory);
-        this.owner = owner;
-        if (owner == null) {
+    public LittleMaidContainer(int windowId, PlayerInventory inv, PacketBuffer data) {
+        this(windowId, inv, data.readVarInt());
+    }
+
+    public LittleMaidContainer(int windowId, PlayerInventory inv, int entityId) {
+        super(Registration.LITTLE_MAID_CONTAINER.get(), windowId);
+        this.playerInventory = new InvWrapper(inv);
+        LittleMaidEntity maid = (LittleMaidEntity) inv.player.world.getEntityByID(entityId);
+        this.maid = maid;
+        if (maid == null) {
             maidInventory = new InvWrapper(new Inventory(18));
         } else {
-            maidInventory = new InvWrapper(owner.getInventory());
+            maidInventory = new InvWrapper(maid.getInventory());
             for (EquipmentSlotType type : EquipmentSlotType.values()) {
                 if (type.getSlotType() == EquipmentSlotType.Group.HAND) {
-                    this.handsInventory.setInventorySlotContents(type.getIndex(), owner.getItemStackFromSlot(type));
+                    this.handsInventory.setInventorySlotContents(type.getIndex(), maid.getItemStackFromSlot(type));
                 }
                 if (type.getSlotType() == EquipmentSlotType.Group.ARMOR) {
-                    this.armorsInventory.setInventorySlotContents(type.getIndex(), owner.getItemStackFromSlot(type));
+                    this.armorsInventory.setInventorySlotContents(type.getIndex(), maid.getItemStackFromSlot(type));
                 }
             }
         }
         layoutMaidInventorySlots();
         layoutPlayerInventorySlots(8, 126);
+    }
+
+    public LittleMaidEntity getGuiEntity() {
+        return maid;
     }
 
     //18 + 2 + 4 = 24、24 + 4 * 9 = 60
@@ -78,7 +88,7 @@ public class LittleMaidContainer extends Container {
                 //そうでなければプレイヤーインベントリへ
                 for (EquipmentSlotType type : EquipmentSlotType.values()) {
                     //装備できる
-                    if (type.getSlotType() == EquipmentSlotType.Group.ARMOR && slotStack.canEquip(type, this.owner)) {
+                    if (type.getSlotType() == EquipmentSlotType.Group.ARMOR && slotStack.canEquip(type, this.maid)) {
                         //防具スロットへ移動可能
                         if (!this.mergeItemStack(slotStack, 20, 24, false)) {
                             return ItemStack.EMPTY;
@@ -128,7 +138,7 @@ public class LittleMaidContainer extends Container {
 
     @Override
     public boolean canInteractWith(PlayerEntity playerIn) {
-        return this.owner != null && this.owner.isAlive() && this.owner.getDistance(playerIn) < 8.0F;
+        return this.maid != null && this.maid.isAlive() && this.maid.getDistance(playerIn) < 8.0F;
     }
 
     private int addSlotRange(IItemHandler handler, int index, int x, int y, int amount, int dx) {
@@ -169,25 +179,25 @@ public class LittleMaidContainer extends Container {
         addSlot(new Slot(armorsInventory, EquipmentSlotType.HEAD.getIndex(), 8, 8) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.HEAD, owner);
+                return stack.canEquip(EquipmentSlotType.HEAD, maid);
             }
         });
         addSlot(new Slot(armorsInventory, EquipmentSlotType.CHEST.getIndex(), 8, 44) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.CHEST, owner);
+                return stack.canEquip(EquipmentSlotType.CHEST, maid);
             }
         });
         addSlot(new Slot(armorsInventory, EquipmentSlotType.LEGS.getIndex(), 80, 8) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.LEGS, owner);
+                return stack.canEquip(EquipmentSlotType.LEGS, maid);
             }
         });
         addSlot(new Slot(armorsInventory, EquipmentSlotType.FEET.getIndex(), 80, 44) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.FEET, owner);
+                return stack.canEquip(EquipmentSlotType.FEET, maid);
             }
         });
     }

@@ -3,7 +3,7 @@ package com.sistr.littlemaidrebirth.entity;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.nbt.CompoundNBT;
 
-public interface IHasInventory {
+public interface InventorySupplier {
 
     IInventory getInventory();
 

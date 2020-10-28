@@ -35,7 +35,7 @@ public class IFFScreen extends Screen {
     private int scroll;
     private int select;
 
-    public IFFScreen(ITextComponent titleIn, LivingEntity owner, IHasIFF iff) {
+    public IFFScreen(ITextComponent titleIn, LivingEntity owner, HasIFF iff) {
         super(titleIn);
         this.owner = owner;
         ImmutableList.Builder<LivingEntity> builder = ImmutableList.builder();
