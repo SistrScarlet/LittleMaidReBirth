@@ -6,6 +6,7 @@ import com.sistr.littlemaidrebirth.entity.goal.*;
 import com.sistr.littlemaidrebirth.entity.iff.HasIFF;
 import com.sistr.littlemaidrebirth.entity.mode.*;
 import com.sistr.littlemaidrebirth.setup.Registration;
+import com.sistr.littlemaidrebirth.util.LivingAccessor;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.monster.CreeperEntity;
@@ -31,15 +32,13 @@ import net.minecraft.network.datasync.DataSerializers;
 import net.minecraft.network.datasync.EntityDataManager;
 import net.minecraft.particles.ParticleTypes;
 import net.minecraft.pathfinding.GroundPathNavigator;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvents;
+import net.minecraft.util.*;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.util.FakePlayer;
@@ -129,9 +128,9 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         addDefaultModes(this);
     }
 
-    //スタティックなメソッド
+    //登録メソッドたち
 
-    public static void addDefaultModes(LittleMaidEntity maid) {
+    public void addDefaultModes(LittleMaidEntity maid) {
         maid.addMode(new FencerMode(maid, maid, 1D, true));
         maid.addMode(new ArcherMode(maid, maid, maid,
                 0.1F, 10, 24));
@@ -139,8 +138,6 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         maid.addMode(new RipperMode(maid, 8));
         maid.addMode(new TorcherMode(maid, maid, maid, 8));
     }
-
-    //登録メソッドたち
 
     @Override
     protected void registerGoals() {
@@ -153,7 +150,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         /*this.goalSelector.addGoal(12, new WaitWhenOpenGUIGoal<>(this, this,
                 LittleMaidContainer.class));*/
         this.goalSelector.addGoal(13, new EscortGoal(this, this,
-                16F, 24F, 32F, 1.5D));
+                16F, 20F, 24F, 1.5D));
         this.goalSelector.addGoal(15, new ModeWrapperGoal(this));
         this.goalSelector.addGoal(16, new FollowAtHeldItemGoal(this, this, true,
                 Sets.newHashSet(Items.SUGAR)));
@@ -163,9 +160,9 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 Sets.newHashSet(Items.SUGAR)));
         this.goalSelector.addGoal(18, new LMMoveToDropItemGoal(this, 8, 1D));
         this.goalSelector.addGoal(19, new EscortGoal(this, this,
-                4F, 8F, 16F, 1.5D));
+                6F, 8F, 12F, 1.5D));
         this.goalSelector.addGoal(20, new EscortGoal(this, this,
-                4F, 5F, 16F, 1.0D));
+                4F, 6F, 12F, 1.0D));
         this.goalSelector.addGoal(20, new FreedomGoal(this, this, 0.8D, 16D));
         this.goalSelector.addGoal(30, new LookAtGoal(this, PlayerEntity.class, 8.0F));
         this.goalSelector.addGoal(30, new LookRandomlyGoal(this));
@@ -471,24 +468,25 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
-        Entity attacker = source.getTrueSource();
         if (!world.isRemote) {
             //味方のが当たってもちゃんと動くようにフレンド判定より前
-            if (amount <= 0 && source.getTrueSource() instanceof SnowballEntity) {
+            if (amount <= 0 && source.getImmediateSource() instanceof SnowballEntity) {
                 play(LMSounds.HURT_SNOW);
                 return false;
             }
         }
+        Entity attacker = source.getTrueSource();
         //Friend及び、自身と同じUUIDの者(自身のFakePlayer)を除外
-        if (attacker != null && (isFriend(attacker) || attacker.getUniqueID().equals(this.getUniqueID()))) {
+        if (attacker != null && (isFriend(attacker) || this.getUniqueID().equals(attacker.getUniqueID()))) {
             return false;
         }
+        boolean isHurtTime = 0 < this.hurtTime;
         boolean result = super.attackEntityFrom(source, amount);
-        if (!world.isRemote) {
-            if (amount > 0F && this.canBlockDamageSource(source)) {
-                play(LMSounds.HURT_GUARD);
-            } else if (amount <= 0F) {
+        if (!world.isRemote && !isHurtTime) {
+            if (!result || amount <= 0F) {
                 play(LMSounds.HURT_NO_DAMAGE);
+            } else if (amount > 0F && ((LivingAccessor) this).blockedByShield_LM(source)) {
+                play(LMSounds.HURT_GUARD);
             } else if (source == DamageSource.FALL) {
                 play(LMSounds.HURT_FALL);
             } else if (source.isFireDamage()) {
@@ -534,20 +532,21 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             return false;
         }
         //ストライキ中、ケーキじゃないなら不満気にしてリターン
+        //クライアント側にはストライキかどうかは判定できない
         if (isStrike() && stack.getItem() != Items.CAKE) {
-            for (int i = 0; i < 5; i++) {
-                this.world.addParticle(ParticleTypes.SMOKE,
+            if (world instanceof ServerWorld)
+                ((ServerWorld) world).spawnParticle(ParticleTypes.SMOKE,
                         this.getPosX() + (0.5F - rand.nextFloat()) * 0.2F,
                         this.getPosYEye() + (0.5F - rand.nextFloat()) * 0.2F,
                         this.getPosZ() + (0.5F - rand.nextFloat()) * 0.2F,
-                        0, 0.1, 0);
-            }
+                        5,
+                        0, 1, 0, 0.1);
             return false;
         }
         if (hasTameOwner()) {
             if (isStrike()) {
                 if (stack.getItem() == Items.CAKE) {
-                    return contract(player, stack, false);
+                    return contract(player, stack, true);
                 }
                 return false;
             }
@@ -556,7 +555,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             }
         } else {
             if (stack.getItem() == Items.CAKE) {
-                return contract(player, stack, true);
+                return contract(player, stack, false);
             }
         }
         if (player.getUniqueID().equals(this.getOwnerId())) {
@@ -613,8 +612,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 play(LMSounds.GET_CAKE);
             }
         }
-        while (receiveSalary(1))//ここに給料処理が混じってるのがちょっとムカつく
-            getNavigator().clearPath();
+        if (isReContract) {
+            setStrike(false);
+        }
+        while (receiveSalary(1));//ここに給料処理が混じってるのがちょっとムカつく
+        getNavigator().clearPath();
         this.setOwnerId(player.getUniqueID());
         setMovingState(Tameable.ESCORT);
         setContract(true);
@@ -767,7 +769,12 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
     @Override
     public boolean consumeSalary(int num) {
-        return needSalary.consumeSalary(num);
+        boolean result = needSalary.consumeSalary(num);
+        if (result) {
+            this.playSound(SoundEvents.ENTITY_ITEM_PICKUP, 1.0F, this.getRNG().nextFloat() * 0.1F + 1.0F);
+            this.swingArm(Hand.MAIN_HAND);
+        }
+        return result;
     }
 
     @Override
@@ -786,13 +793,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     }
 
     @Override
-    public void writeSalary(CompoundNBT nbt) {
-        needSalary.writeSalary(nbt);
-    }
-
-    @Override
-    public void readSalary(CompoundNBT nbt) {
-        needSalary.readSalary(nbt);
+    public void setStrike(boolean strike) {
+        needSalary.setStrike(strike);
     }
 
     //モード機能

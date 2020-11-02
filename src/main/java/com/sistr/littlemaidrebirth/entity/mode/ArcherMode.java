@@ -8,7 +8,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.item.BowItem;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ShootableItem;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.EntityRayTraceResult;
@@ -23,7 +25,7 @@ public class ArcherMode implements Mode {
     private final CreatureEntity mob;
     private final AimingPoseable archer;
     private final double moveSpeedAmp;
-    private final FakePlayerSupplier hasFakePlayer;
+    private final FakePlayerSupplier fakePlayer;
     private int attackCooldown;
     private final float maxAttackDistance;
     private int seeTime;
@@ -31,10 +33,10 @@ public class ArcherMode implements Mode {
     private boolean strafingBackwards;
     private int strafingTime = -1;
 
-    public ArcherMode(CreatureEntity mob, AimingPoseable archer, FakePlayerSupplier hasFakePlayer, double moveSpeedAmpIn, int attackCooldownIn, float maxAttackDistanceIn) {
+    public ArcherMode(CreatureEntity mob, AimingPoseable archer, FakePlayerSupplier fakePlayer, double moveSpeedAmpIn, int attackCooldownIn, float maxAttackDistanceIn) {
         this.mob = mob;
         this.archer = archer;
-        this.hasFakePlayer = hasFakePlayer;
+        this.fakePlayer = fakePlayer;
         this.moveSpeedAmp = moveSpeedAmpIn;
         this.attackCooldown = attackCooldownIn;
         this.maxAttackDistance = maxAttackDistanceIn * maxAttackDistanceIn;
@@ -46,7 +48,18 @@ public class ArcherMode implements Mode {
     }
 
     public boolean shouldExecute() {
-        return this.mob.getAttackTarget() != null && this.mob.getAttackTarget().isAlive();
+        return this.mob.getAttackTarget() != null && this.mob.getAttackTarget().isAlive()
+                && (!(mob.getHeldItemMainhand().getItem() instanceof ShootableItem) || heldAmmo());
+    }
+
+    public boolean heldAmmo() {
+        ItemStack weaponStack = mob.getHeldItemMainhand();
+        Item weapon = weaponStack.getItem();
+        if (!(weapon instanceof ShootableItem)) {
+            return false;
+        }
+        ItemStack ammo = fakePlayer.getFakePlayer().findAmmo(weaponStack);
+        return !ammo.isEmpty();
     }
 
     public boolean shouldContinueExecuting() {
@@ -109,7 +122,7 @@ public class ArcherMode implements Mode {
             this.mob.faceEntity(target, 30.0F, 30.0F);
         }
 
-        FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+        FakePlayer fakePlayer = this.fakePlayer.getFakePlayer();
         if (!fakePlayer.isHandActive()) {
             if (this.seeTime >= -60) {
                 this.archer.setAimingBow(true);
@@ -169,7 +182,7 @@ public class ArcherMode implements Mode {
 
         this.mob.getNavigator().clearPath();
 
-        FakePlayer fakePlayer = this.hasFakePlayer.getFakePlayer();
+        FakePlayer fakePlayer = this.fakePlayer.getFakePlayer();
         fakePlayer.resetActiveHand();
     }
 

@@ -1,6 +1,7 @@
 package com.sistr.littlemaidrebirth.entity;
 
 import com.sistr.littlemaidrebirth.setup.Registration;
+import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.EquipmentSlotType;
@@ -16,7 +17,7 @@ import net.minecraftforge.items.wrapper.InvWrapper;
 
 import javax.annotation.Nullable;
 
-public class LittleMaidContainer extends Container implements HasGuiEntitySupplier {
+public class LittleMaidContainer extends Container implements HasGuiEntitySupplier<LittleMaidEntity> {
     private final InvWrapper playerInventory;
     private final InvWrapper maidInventory;
     private final IInventory handsInventory = new Inventory(2) {
@@ -76,64 +77,34 @@ public class LittleMaidContainer extends Container implements HasGuiEntitySuppli
     //0~17メイドインベントリ、18~19メインサブ、20~23防具、24~59プレイヤーインベントリ
     @Override
     public ItemStack transferStackInSlot(PlayerEntity playerIn, int index) {
-        ItemStack defaultStack = ItemStack.EMPTY;
+        ItemStack newStack = ItemStack.EMPTY;
         Slot slot = this.inventorySlots.get(index);
-        if (slot != null && slot.getHasStack()) {
-            ItemStack slotStack = slot.getStack();
-            defaultStack = slotStack.copy();
-
-            //メイドインベントリ
-            if (index < 18) {
-                //防具として装備できれば装備
-                //そうでなければプレイヤーインベントリへ
-                for (EquipmentSlotType type : EquipmentSlotType.values()) {
-                    //装備できる
-                    if (type.getSlotType() == EquipmentSlotType.Group.ARMOR && slotStack.canEquip(type, this.maid)) {
-                        //防具スロットへ移動可能
-                        if (!this.mergeItemStack(slotStack, 20, 24, false)) {
-                            return ItemStack.EMPTY;
-                        }
-                        break;
-                    }
-                }
-                //todo モード切り替えアイテムの場合はハンドに移動するようにするか？
-                //プレイヤーインベントリへ移動可能
-                if (!this.mergeItemStack(slotStack, 24, this.inventorySlots.size(), false)) {
-                    return ItemStack.EMPTY;
-                }
-            } else if (index < 20) {//メインサブ
-                //メイドインベントリへ移動可能
-                if (!this.mergeItemStack(slotStack, 0, 18, false)) {
-                    return ItemStack.EMPTY;
-                }
-                //プレイヤーインベントリへ移動可能
-                if (!this.mergeItemStack(slotStack, 24, this.inventorySlots.size(), false)) {
-                    return ItemStack.EMPTY;
-                }
-            } else if (index < 24) {//防具
-                //メイドインベントリへ移動可能
-                if (!this.mergeItemStack(slotStack, 0, 18, false)) {
-                    return ItemStack.EMPTY;
-                }
-                //プレイヤーインベントリへ移動可能
-                if (!this.mergeItemStack(slotStack, 24, this.inventorySlots.size(), false)) {
-                    return ItemStack.EMPTY;
-                }
-            } else {//プレイヤーインベントリ
-                //メイドインベントリへ移動可能
-                if (!this.mergeItemStack(slotStack, 0, 18, false)) {
-                    return ItemStack.EMPTY;
-                }
+        if (slot == null || !slot.getHasStack()) {
+            return newStack;
+        }
+        ItemStack originalStack = slot.getStack();
+        newStack = originalStack.copy();
+        if (index < 18) {//メイド->プレイヤー
+            if (!this.mergeItemStack(originalStack, 24, 60, false)) {
+                return ItemStack.EMPTY;
             }
-
-            if (slotStack.isEmpty()) {
-                slot.putStack(ItemStack.EMPTY);
-            } else {
-                slot.onSlotChanged();
+        } else if (index < 24) {//ハンド、防具->メイド
+            if (!this.mergeItemStack(originalStack, 0, 18, true)) {
+                return ItemStack.EMPTY;
+            }
+        } else {//プレイヤー->メイド
+            if (!this.mergeItemStack(originalStack, 0, 18, false)) {
+                return ItemStack.EMPTY;
             }
         }
 
-        return defaultStack;
+        if (originalStack.isEmpty()) {
+            slot.putStack(ItemStack.EMPTY);
+        } else {
+            slot.onSlotChanged();
+        }
+
+        return newStack;
     }
 
     @Override
@@ -179,25 +150,25 @@ public class LittleMaidContainer extends Container implements HasGuiEntitySuppli
         addSlot(new Slot(armorsInventory, EquipmentSlotType.HEAD.getIndex(), 8, 8) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.HEAD, maid);
+                return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.HEAD;
             }
         });
         addSlot(new Slot(armorsInventory, EquipmentSlotType.CHEST.getIndex(), 8, 44) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.CHEST, maid);
+                return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.CHEST;
             }
         });
         addSlot(new Slot(armorsInventory, EquipmentSlotType.LEGS.getIndex(), 80, 8) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.LEGS, maid);
+                return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.LEGS;
             }
         });
         addSlot(new Slot(armorsInventory, EquipmentSlotType.FEET.getIndex(), 80, 44) {
             @Override
             public boolean isItemValid(ItemStack stack) {
-                return stack.canEquip(EquipmentSlotType.FEET, maid);
+                return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.FEET;
             }
         });
     }

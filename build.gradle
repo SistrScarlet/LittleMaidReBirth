@@ -145,7 +145,7 @@ jar {
             "Implementation-Version": "${version}",
             "Implementation-Vendor" :"examplemodsareus",
             "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
-            "MixinConnector": "net.sistr.littlemaidrebirth.mixin.Connector"
+            "MixinConnector": "com.sistr.littlemaidrebirth.mixin.Connector"
         ])
     }
 }

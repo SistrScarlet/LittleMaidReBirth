@@ -15,8 +15,6 @@ public interface NeedSalary {
 
     boolean isStrike();
 
-    void writeSalary(CompoundNBT nbt);
-
-    void readSalary(CompoundNBT nbt);
+    void setStrike(boolean strike);
 
 }

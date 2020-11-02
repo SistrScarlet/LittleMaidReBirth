@@ -13,8 +13,8 @@
   "mode.littlemaidrebirth.Ripper": "Ripper",
   "mode.littlemaidrebirth.Torcher": "Torcher",
 
-  "item.littlemaidrebirth.little_maid_spawn_egg": "Little Maid Spawn Egg",
+  "item.littlemaidrebirth.little_maid_spawn_egg": "LittleMaid Spawn Egg",
 
-  "itemGroup.littlemaidrebirth.littlemaidrebirth": "LittleMaid ReBirth"
+  "itemGroup.littlemaidrebirth.common": "LittleMaidReBirth"
 
 }

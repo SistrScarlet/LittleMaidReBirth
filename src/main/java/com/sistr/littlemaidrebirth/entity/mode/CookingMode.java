@@ -1,18 +1,15 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.sistr.littlemaidrebirth.entity.InventorySupplier;
+import com.sistr.littlemaidrebirth.util.AbstractFurnaceAccessor;
 import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.crafting.AbstractCookingRecipe;
-import net.minecraft.item.crafting.FurnaceRecipe;
-import net.minecraft.item.crafting.IRecipeType;
 import net.minecraft.item.crafting.IRecipeType;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.NBTUtil;
@@ -26,7 +23,6 @@ import net.minecraft.util.math.*;
 import net.sistr.lmml.entity.compound.SoundPlayable;
 import net.sistr.lmml.resource.util.LMSounds;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -121,7 +117,7 @@ public class CookingMode implements Mode {
             }
         }
         //何か焼いている場合はtrue
-        if (furnace.isBurning()) {
+        if (((AbstractFurnaceAccessor)furnace).isBurningFire_LM()) {
             for (int availableSlot : furnace.getSlotsForFace(Direction.UP)) {
                 if (!furnace.getStackInSlot(availableSlot).isEmpty()) {
                     return true;
@@ -129,7 +125,7 @@ public class CookingMode implements Mode {
             }
         }
         //焼くものがあり、燃料もある場合はtrue
-        if (getAllCoockable(furnace.recipeType).findAny().isPresent()) {
+        if (getAllCoockable(((AbstractFurnaceAccessor)furnace).getRecipeType_LM()).findAny().isPresent()) {
             return true;
         }
         //待つ必要が無く、焼きたいわけでもない場合はfalse
@@ -169,7 +165,7 @@ public class CookingMode implements Mode {
 
         IInventory inventory = this.hasInventory.getInventory();
 
-        IRecipeType<? extends AbstractCookingRecipe> recipeType = furnace.recipeType;
+        IRecipeType<? extends AbstractCookingRecipe> recipeType = ((AbstractFurnaceAccessor)furnace).getRecipeType_LM();
 
         getCookable(recipeType).ifPresent(cookableIndex -> tryInsertCookable(furnace, inventory, cookableIndex));
         getFuel().ifPresent(fuelIndex -> tryInsertFuel(furnace, inventory, fuelIndex));
@@ -268,7 +264,7 @@ public class CookingMode implements Mode {
         for (int slot : tile.getSlotsForFace(Direction.UP)) {
             ItemStack stack = tile.getStackInSlot(slot);
             if (!stack.isEmpty()) continue;
-            IRecipeType<? extends AbstractCookingRecipe> recipeType = tile.recipeType;
+            IRecipeType<? extends AbstractCookingRecipe> recipeType = ((AbstractFurnaceAccessor)tile).getRecipeType_LM();
             if (getAllCoockable(recipeType)
                     .anyMatch(cookable -> tile.canInsertItem(slot, cookable, Direction.UP))) {
                 return true;

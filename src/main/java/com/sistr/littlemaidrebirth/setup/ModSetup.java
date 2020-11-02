@@ -3,6 +3,7 @@ package com.sistr.littlemaidrebirth.setup;
 import com.sistr.littlemaidrebirth.Config;
 import com.sistr.littlemaidrebirth.LittleMaidReBirthMod;
 import com.sistr.littlemaidrebirth.network.Networking;
+import com.sistr.littlemaidrebirth.util.BiomeAccessor;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
@@ -19,7 +20,7 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = LittleMaidReBirthMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ModSetup {
 
-    public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth") {
+    public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth.common") {
         @Override
         public ItemStack createIcon() {
             return new ItemStack(Items.CAKE);
@@ -57,9 +58,11 @@ public class ModSetup {
 
             //スポーン対象の場合はスポーン設定
             if (isSpawn) {
-                //AccessTransformerでアクセス
-                biome.addSpawn(EntityClassification.CREATURE, new Biome.SpawnListEntry(Registration.LITTLE_MAID_MOB.get(),
-                        Config.SPAWN_WEIGHT_LM.get(), Config.SPAWN_MIN_GROUP_SIZE_LM.get(), Config.SPAWN_MAX_GROUP_SIZE_LM.get()));
+                ((BiomeAccessor)biome).addSpawn_LM(EntityClassification.CREATURE,
+                        new Biome.SpawnListEntry(Registration.LITTLE_MAID_MOB.get(),
+                                Config.SPAWN_WEIGHT_LM.get(),
+                                Config.SPAWN_MIN_GROUP_SIZE_LM.get(),
+                                Config.SPAWN_MAX_GROUP_SIZE_LM.get()));
 
             }
         }

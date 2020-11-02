@@ -2,7 +2,6 @@ package com.sistr.littlemaidrebirth.entity.goal;
 
 import com.sistr.littlemaidrebirth.entity.HasGuiEntitySupplier;
 import com.sistr.littlemaidrebirth.entity.Tameable;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.goal.Goal;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.player.PlayerEntity;
