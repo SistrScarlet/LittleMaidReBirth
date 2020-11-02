@@ -39,7 +39,6 @@ public class Registration {
             ENTITIES.register("little_maid_mob", () -> LITTLE_MAID_MOB_BEFORE);
 
     public static final RegistryObject<ContainerType<LittleMaidContainer>> LITTLE_MAID_CONTAINER =
-            CONTAINERS.register("little_maid_container", () -> IForgeContainerType.create((windowId, inv, data) ->
-                    new LittleMaidContainer(windowId, inv)));
+            CONTAINERS.register("little_maid_container", () -> IForgeContainerType.create(LittleMaidContainer::new));
 
 }

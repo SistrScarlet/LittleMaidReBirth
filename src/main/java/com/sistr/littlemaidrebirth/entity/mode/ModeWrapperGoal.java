@@ -6,40 +6,35 @@ import java.util.EnumSet;
 
 //排他Goal
 public class ModeWrapperGoal extends Goal {
-    private final IHasMode owner;
+    private final ModeSupplier owner;
 
-    public ModeWrapperGoal(IHasMode owner) {
+    public ModeWrapperGoal(ModeSupplier owner) {
         this.owner = owner;
         setMutexFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
     @Override
     public boolean shouldExecute() {
-        if (owner.getMode() == null) return false;
-        return owner.getMode().shouldExecute();
+        return owner.getMode().map(Mode::shouldExecute).orElse(false);
     }
 
     @Override
     public boolean shouldContinueExecuting() {
-        if (owner.getMode() == null) return false;
-        return owner.getMode().shouldContinueExecuting();
+        return owner.getMode().map(Mode::shouldContinueExecuting).orElse(false);
     }
 
     @Override
     public void startExecuting() {
-        if (owner.getMode() == null) return;
-        owner.getMode().startExecuting();
+        owner.getMode().ifPresent(Mode::startExecuting);
     }
 
     @Override
     public void resetTask() {
-        if (owner.getMode() == null) return;
-        owner.getMode().resetTask();
+        owner.getMode().ifPresent(Mode::resetTask);
     }
 
     @Override
     public void tick() {
-        if (owner.getMode() == null) return;
-        owner.getMode().tick();
+        owner.getMode().ifPresent(Mode::tick);
     }
 }

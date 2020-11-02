@@ -1,6 +1,6 @@
 package com.sistr.littlemaidrebirth.entity.goal;
 
-import com.sistr.littlemaidrebirth.entity.ITameable;
+import com.sistr.littlemaidrebirth.entity.Tameable;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.LeavesBlock;
 import net.minecraft.entity.CreatureEntity;
@@ -15,29 +15,32 @@ import java.util.EnumSet;
 
 public class EscortGoal extends Goal {
     private final CreatureEntity escort;
-    private final ITameable tameable;
+    private final Tameable tameable;
     private final PathNavigator navigator;
     private final float minDistanceSq;
     private final float maxDistanceSq;
+    private final float teleportDistanceSq;
     private final double speed;
 
     private int timeToRecalcPath;
     private float oldWaterCost;
     private Entity owner;
 
-    public EscortGoal(CreatureEntity escort, ITameable tameable, float minDistance, float maxDistance, double speed) {
+    public EscortGoal(CreatureEntity escort, Tameable tameable,
+                      float minDistance, float maxDistance, float teleportDistance, double speed) {
         this.escort = escort;
         this.tameable = tameable;
         this.navigator = escort.getNavigator();
         this.minDistanceSq = maxDistance * maxDistance;
         this.maxDistanceSq = minDistance * minDistance;
+        this.teleportDistanceSq = teleportDistance * teleportDistance;
         this.speed = speed;
         setMutexFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));
     }
 
     @Override
     public boolean shouldExecute() {
-        if (!this.tameable.getMovingState().equals(ITameable.ESCORT)) {
+        if (!this.tameable.getMovingState().equals(Tameable.ESCORT)) {
             return false;
         }
         Entity owner = this.tameable.getTameOwner().orElse(null);
@@ -58,7 +61,7 @@ public class EscortGoal extends Goal {
         if (this.navigator.noPath()) {
             return false;
         }
-        if (!this.tameable.getMovingState().equals(ITameable.ESCORT)) {
+        if (!this.tameable.getMovingState().equals(Tameable.ESCORT)) {
             return false;
         }
         return this.minDistanceSq < owner.getDistanceSq(this.escort);
@@ -78,10 +81,10 @@ public class EscortGoal extends Goal {
             this.timeToRecalcPath = 10;
             if (!this.escort.getLeashed() && !this.escort.isPassenger()) {
                 double distanceSq = this.escort.getDistanceSq(this.owner);
-                if (distanceSq > 12 * 12) {
+                if (teleportDistanceSq < distanceSq) {
                     this.tryTeleport();
                 } else {
-                    this.navigator.tryMoveToEntityLiving(this.owner, 6 * 6 < distanceSq ? speed + 0.5 : speed);
+                    this.navigator.tryMoveToEntityLiving(this.owner, speed);
                 }
 
             }
@@ -123,7 +126,7 @@ public class EscortGoal extends Goal {
         if (blockstate.getBlock() instanceof LeavesBlock) {
             return false;
         }
-        BlockPos blockpos = pos.subtract(this.escort.getPosition());
+        BlockPos blockpos = pos.subtract(escort.getPosition());
         return this.escort.world.hasNoCollisions(this.escort, this.escort.getBoundingBox().offset(blockpos));
     }
 

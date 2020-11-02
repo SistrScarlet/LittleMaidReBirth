@@ -3,6 +3,7 @@ package com.sistr.littlemaidrebirth.setup;
 import com.sistr.littlemaidrebirth.Config;
 import com.sistr.littlemaidrebirth.LittleMaidReBirthMod;
 import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
+import com.sistr.littlemaidrebirth.network.Networking;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntitySpawnPlacementRegistry;
 import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
@@ -20,7 +21,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 @Mod.EventBusSubscriber(modid = LittleMaidReBirthMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ModSetup {
 
-    public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth") {
+    public static final ItemGroup ITEM_GROUP = new ItemGroup("littlemaidrebirth.common") {
         @Override
         public ItemStack createIcon() {
             return new ItemStack(Items.CAKE);
@@ -28,9 +29,10 @@ public class ModSetup {
     };
 
     public static void init(final FMLCommonSetupEvent event) {
+        Networking.registerMessages();
+
         GlobalEntityTypeAttributes.put(Registration.LITTLE_MAID_MOB.get(),
                 LittleMaidEntity.registerAttributes().create());
-
         EntitySpawnPlacementRegistry.register(
                 Registration.LITTLE_MAID_MOB.get(), EntitySpawnPlacementRegistry.PlacementType.ON_GROUND,
                 Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, LittleMaidEntity::canLittleMaidSpawn);

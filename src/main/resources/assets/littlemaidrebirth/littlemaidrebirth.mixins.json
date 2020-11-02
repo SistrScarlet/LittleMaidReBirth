@@ -1,0 +1,13 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "com.sistr.littlemaidrebirth.mixin",
+    "compatibilityLevel": "JAVA_8",
+    "refmap": "littlemaidrebirth.refmap.json",
+    "mixins": [ "MixinAbstractFurnaceTileEntity", "MixinDefaultedList", "MixinLivingEntity", "MixinMeleeAttackGoal", "MixinPlayerEntity" ],
+    "client": [
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

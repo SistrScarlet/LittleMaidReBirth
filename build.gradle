@@ -3,9 +3,11 @@ buildscript {
         maven { url = 'https://files.minecraftforge.net/maven' }
         jcenter()
         mavenCentral()
+        maven { url = 'https://dist.creeper.host/Sponge/maven' }
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
 apply plugin: 'net.minecraftforge.gradle'
@@ -13,9 +15,21 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '1.16.3-2.2.1'
+// mixin
+apply plugin: 'org.spongepowered.mixin'
+
+//実環境だとこれか下のが無いとクラッシュする
+mixin {
+    add sourceSets.main, "mixins.littlemaidrebirth.refmap.json"
+}
+
+repositories {
+    maven { url = 'https://dist.creeper.host/Sponge/maven' }
+}
+
+version = '2.3.0'
 group = 'com.sistr.littlemaidrebirth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'LMRB-Fo'
+archivesBaseName = 'LMRB-Forge-1.16.3'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
@@ -130,7 +144,8 @@ jar {
             "Implementation-Title": project.name,
             "Implementation-Version": "${version}",
             "Implementation-Vendor" :"examplemodsareus",
-            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            "MixinConnector": "com.sistr.littlemaidrebirth.mixin.Connector"
         ])
     }
 }

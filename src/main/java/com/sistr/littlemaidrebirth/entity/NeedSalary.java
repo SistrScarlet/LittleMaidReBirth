@@ -3,7 +3,7 @@ package com.sistr.littlemaidrebirth.entity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 
-public interface INeedSalary {
+public interface NeedSalary {
 
     boolean receiveSalary(int num);
 
@@ -15,8 +15,6 @@ public interface INeedSalary {
 
     boolean isStrike();
 
-    void writeSalary(CompoundNBT nbt);
-
-    void readSalary(CompoundNBT nbt);
+    void setStrike(boolean strike);
 
 }

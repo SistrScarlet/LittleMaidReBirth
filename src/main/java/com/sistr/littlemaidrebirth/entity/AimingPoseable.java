@@ -1,8 +1,8 @@
 package com.sistr.littlemaidrebirth.entity;
 
-public interface IArcher {
+public interface AimingPoseable {
 
-    boolean getAimingBow();
+    boolean isAimingBow();
 
     void setAimingBow(boolean aiming);
 }

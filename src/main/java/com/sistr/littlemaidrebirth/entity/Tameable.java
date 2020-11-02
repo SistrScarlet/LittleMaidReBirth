@@ -1,12 +1,12 @@
 package com.sistr.littlemaidrebirth.entity;
 
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.util.math.BlockPos;
 
-import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ITameable {
+public interface Tameable {
 
     String NONE = "None";
     String WAIT = "Wait";
@@ -24,5 +24,7 @@ public interface ITameable {
     String getMovingState();
 
     void setMovingState(String movingState);
+
+    Optional<BlockPos> getFollowPos();
 
 }
