@@ -54,7 +54,7 @@ public class SyncMovingStatePacket {
         ctx.get().enqueueWork(() -> {
             PlayerEntity player = ctx.get().getSender();
             if (player == null) return;
-            receiveC2SPacket(player, entityId, state);
+            applyMovingStateServer(player, entityId, state);
         });
         ctx.get().setPacketHandled(true);
     }
@@ -64,7 +64,7 @@ public class SyncMovingStatePacket {
         Networking.INSTANCE.sendToServer(new SyncMovingStatePacket(entity, state));
     }
 
-    public static void receiveC2SPacket(PlayerEntity player, int entityId, String state) {
+    public static void applyMovingStateServer(PlayerEntity player, int entityId, String state) {
         Entity entity = player.world.getEntityByID(entityId);
         if (entity instanceof Tameable) {
             if (!((Tameable) entity).getTameOwnerUuid()
