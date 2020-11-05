@@ -38,13 +38,11 @@ public class SyncSoundConfigPacket {
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
             if (ctx.get().getDirection() == NetworkDirection.PLAY_TO_CLIENT) {
-                PlayerEntity player = Minecraft.getInstance().player;
-                if (player == null) return;
-                receiveS2CPacket(player, entityId, configName);
+                applySoundConfigClient(entityId, configName);
             } else {
                 PlayerEntity player = ctx.get().getSender();
                 if (player == null) return;
-                receiveC2SPacket(player, entityId, configName);
+                applySoundConfigServer(player, entityId, configName);
             }
         });
         ctx.get().setPacketHandled(true);
@@ -61,7 +59,9 @@ public class SyncSoundConfigPacket {
     }
 
     @OnlyIn(Dist.CLIENT)
-    public static void receiveS2CPacket(PlayerEntity player, int entityId, String configName) {
+    public static void applySoundConfigClient(int entityId, String configName) {
+        PlayerEntity player = Minecraft.getInstance().player;
+        if (player == null) return;
         World world = player.world;
         Entity entity = world.getEntityByID(entityId);
         if (entity instanceof SoundPlayable) {
@@ -70,7 +70,7 @@ public class SyncSoundConfigPacket {
         }
     }
 
-    public static void receiveC2SPacket(PlayerEntity player, int entityId, String configName) {
+    public static void applySoundConfigServer(PlayerEntity player, int entityId, String configName) {
         World world = player.world;
         Entity entity = world.getEntityByID(entityId);
         if (!(entity instanceof SoundPlayable)) {

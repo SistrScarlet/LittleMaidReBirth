@@ -272,30 +272,33 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
     //鯖
     @Override
-    public void writeSpawnData(PacketBuffer buffer) {
-        buffer.writeEnumValue(getColor());
-        buffer.writeBoolean(isContract());
-        buffer.writeString(getTextureHolder(Layer.SKIN, Part.HEAD).getTextureName());
+    public void writeSpawnData(PacketBuffer buf) {
+        buf.writeEnumValue(getColor());
+        buf.writeBoolean(isContract());
+        buf.writeString(getTextureHolder(Layer.SKIN, Part.HEAD).getTextureName());
         for (Part part : Part.values()) {
-            buffer.writeString(getTextureHolder(Layer.INNER, part).getTextureName());
-            buffer.writeString(getTextureHolder(Layer.OUTER, part).getTextureName());
+            buf.writeString(getTextureHolder(Layer.INNER, part).getTextureName());
+            buf.writeString(getTextureHolder(Layer.OUTER, part).getTextureName());
         }
+        buf.writeString(getConfigHolder().getName());
     }
 
     @Override
-    public void readSpawnData(PacketBuffer additionalData) {
+    public void readSpawnData(PacketBuffer buf) {
         //readString()はクラ処理。このメソッドでは、クラ側なので問題なし
-        setColor(additionalData.readEnumValue(TextureColors.class));
-        setContract(additionalData.readBoolean());
+        setColor(buf.readEnumValue(TextureColors.class));
+        setContract(buf.readBoolean());
         LMTextureManager textureManager = LMTextureManager.INSTANCE;
-        textureManager.getTexture(additionalData.readString())
+        textureManager.getTexture(buf.readString())
                 .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.SKIN, Part.HEAD));
         for (Part part : Part.values()) {
-            textureManager.getTexture(additionalData.readString())
+            textureManager.getTexture(buf.readString())
                     .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.INNER, part));
-            textureManager.getTexture(additionalData.readString())
+            textureManager.getTexture(buf.readString())
                     .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.OUTER, part));
         }
+        LMConfigManager.INSTANCE.getConfig(buf.readString())
+                .ifPresent(this::setConfigHolder);
     }
 
     //バニラメソッズ
