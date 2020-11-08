@@ -38,8 +38,6 @@ public class FixedMoveControl extends MovementController {
             this.action = Action.WAIT;
             return;
         } else if (this.action == Action.WAIT) {
-            this.moveForward = 0;
-            this.moveStrafe = 0;
             this.mob.setMoveForward(0);
             this.mob.setMoveStrafing(0);
             return;
