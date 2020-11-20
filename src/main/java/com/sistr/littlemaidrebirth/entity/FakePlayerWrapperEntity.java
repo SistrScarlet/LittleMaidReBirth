@@ -27,8 +27,6 @@ import java.util.Optional;
 //エンティティをプレイヤーにラップするクラス
 //基本的にサーバーオンリー
 //アイテムの使用/アイテム回収/その他
-//注意！ワールド起動時に読み込まれた場合、ワールド読み込みが停止する可能性がある
-//必ずワールド読み込み後にインスタンスを生成するようにすること
 public abstract class FakePlayerWrapperEntity extends FakePlayer {
 
     public FakePlayerWrapperEntity(LivingEntity origin) {
