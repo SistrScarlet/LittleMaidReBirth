@@ -16,7 +16,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.util.FakePlayer;
 
@@ -27,8 +27,6 @@ import java.util.Optional;
 //エンティティをプレイヤーにラップするクラス
 //基本的にサーバーオンリー
 //アイテムの使用/アイテム回収/その他
-//注意！ワールド起動時に読み込まれた場合、ワールド読み込みが停止する可能性がある
-//必ずワールド読み込み後にインスタンスを生成するようにすること
 public abstract class FakePlayerWrapperEntity extends FakePlayer {
 
     public FakePlayerWrapperEntity(LivingEntity origin) {
@@ -86,8 +84,8 @@ public abstract class FakePlayerWrapperEntity extends FakePlayer {
     //座標系
 
     @Override
-    public Vec3d getPositionVec() {
-        Vec3d vec = getOrigin().getPositionVec();
+    public Vector3d getPositionVec() {
+        Vector3d vec = getOrigin().getPositionVec();
         setPosition(vec.x, vec.y, vec.z);
         return vec;
     }

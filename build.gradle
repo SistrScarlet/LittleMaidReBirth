@@ -27,7 +27,7 @@ repositories {
     maven { url = 'https://dist.creeper.host/Sponge/maven' }
 }
 
-version = '2.3.3'
+version = '2.3.4'
 group = 'com.sistr.littlemaidrebirth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'LMRB-Forge-1.16.4'
 
