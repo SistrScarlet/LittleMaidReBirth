@@ -3,8 +3,16 @@ package com.sistr.littlemaidrebirth.entity;
 import com.mojang.authlib.GameProfile;
 import com.sistr.littlemaidrebirth.util.LivingAccessor;
 import com.sistr.littlemaidrebirth.util.PlayerAccessor;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import net.minecraft.advancements.PlayerAdvancements;
 import net.minecraft.entity.*;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.IPacket;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.PacketDirection;
+import net.minecraft.network.play.ServerPlayNetHandler;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -12,6 +20,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.util.FakePlayer;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +35,7 @@ public abstract class FakePlayerWrapperEntity extends FakePlayer {
         super((ServerWorld) origin.world, new GameProfile(origin.getUniqueID(),
                 origin.getType().getName().getString() + "_player_wrapper"));
         setEntityId(origin.getEntityId());
+        connection = new FakePlayNetHandler(getServer(), this);
     }
 
     public abstract LivingEntity getOrigin();
@@ -122,6 +132,46 @@ public abstract class FakePlayerWrapperEntity extends FakePlayer {
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
         return getOrigin().attackEntityFrom(source, amount);
+    }
+
+    public static class FakePlayNetHandler extends ServerPlayNetHandler {
+
+        public FakePlayNetHandler(MinecraftServer server, ServerPlayerEntity playerIn) {
+            super(server, new FakeNetworkManager(), playerIn);
+        }
+
+        @Override
+        public NetworkManager getNetworkManager() {
+            return super.getNetworkManager();
+        }
+
+        @Override
+        public void sendPacket(IPacket<?> packetIn) {
+
+        }
+
+        @Override
+        public void sendPacket(IPacket<?> packetIn, @Nullable GenericFutureListener<? extends Future<? super Void>> futureListeners) {
+
+        }
+    }
+
+    public static class FakeNetworkManager extends NetworkManager {
+
+        public FakeNetworkManager() {
+            super(PacketDirection.SERVERBOUND);
+        }
+
+        @Override
+        public void sendPacket(IPacket<?> packetIn) {
+
+        }
+
+        @Override
+        public void sendPacket(IPacket<?> packetIn, @Nullable GenericFutureListener<? extends Future<? super Void>> p_201058_2_) {
+
+        }
+
     }
 
 }
