@@ -30,6 +30,10 @@ public class ModSetup {
     public static void init(final FMLCommonSetupEvent event) {
         Networking.registerMessages();
 
+        if (!Config.CAN_SPAWN_LM.get()) {
+            return;
+        }
+
         //メイドさんのスポーンバイオーム
         List<BiomeDictionary.Type> spawnBiomeList = new ArrayList<>();
         spawnBiomeList.add(BiomeDictionary.Type.WET);

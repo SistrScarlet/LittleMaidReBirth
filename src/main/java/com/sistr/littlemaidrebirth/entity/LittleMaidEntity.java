@@ -2,6 +2,7 @@ package com.sistr.littlemaidrebirth.entity;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.sistr.littlemaidrebirth.Config;
 import com.sistr.littlemaidrebirth.entity.goal.*;
 import com.sistr.littlemaidrebirth.entity.iff.HasIFF;
 import com.sistr.littlemaidrebirth.entity.mode.*;
@@ -325,6 +326,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         prevTarget = target;
     }
 
+    @Override
+    public boolean canDespawn(double distanceToClosestPlayer) {
+        return Config.CAN_DESPAWN_LM.get() && !hasTameOwner();
+    }
+
     //canSpawnとかでも使われる
     @Override
     public float getBlockPathWeight(BlockPos pos, IWorldReader worldIn) {
@@ -376,7 +382,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 .orElse(LMModelManager.INSTANCE.getDefaultModel());
         float height = model.getHeight(getCaps());
         float width = model.getWidth(getCaps());
-        size = new EntitySize(width, height, false);
+        size = EntitySize.flexible(width, height);
         return size.scale(getRenderScale());
     }
 

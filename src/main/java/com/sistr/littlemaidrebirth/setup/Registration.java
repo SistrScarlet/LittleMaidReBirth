@@ -35,7 +35,7 @@ public class Registration {
     //エンティティレジストリ
     public static final EntityType<LittleMaidEntity> LITTLE_MAID_MOB_BEFORE =
             EntityType.Builder.create((EntityType.IFactory<LittleMaidEntity>) LittleMaidEntity::new, EntityClassification.CREATURE)
-            .size(0.7F, 1.5F)
+            .size(0.5F, 1.35F)
             .setShouldReceiveVelocityUpdates(false)
             .build("little_maid_mob");
     public static final RegistryObject<EntityType<LittleMaidEntity>> LITTLE_MAID_MOB =
