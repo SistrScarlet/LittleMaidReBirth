@@ -40,16 +40,19 @@ public class ModSetup {
 
     @SubscribeEvent
     public static void onBiomeLoading(final BiomeLoadingEvent event) {
-       Biome.Category category = event.getCategory();
-       if (!event.getName().getNamespace().equals("minecraft")) {
-           return;
-       }
-       if (category == Biome.Category.NONE || category == Biome.Category.THEEND || category == Biome.Category.NETHER) {
-           return;
-       }
-       event.getSpawns().withSpawner(EntityClassification.CREATURE,
-               new MobSpawnInfo.Spawners(Registration.LITTLE_MAID_MOB.get(),
-                       Config.SPAWN_WEIGHT_LM.get(), Config.SPAWN_MIN_GROUP_SIZE_LM.get(), Config.SPAWN_MAX_GROUP_SIZE_LM.get()));
+        if (!Config.CAN_SPAWN_LM.get()) {
+            return;
+        }
+        Biome.Category category = event.getCategory();
+        if (!event.getName().getNamespace().equals("minecraft")) {
+            return;
+        }
+        if (category == Biome.Category.NONE || category == Biome.Category.THEEND || category == Biome.Category.NETHER) {
+            return;
+        }
+        event.getSpawns().withSpawner(EntityClassification.CREATURE,
+                new MobSpawnInfo.Spawners(Registration.LITTLE_MAID_MOB.get(),
+                        Config.SPAWN_WEIGHT_LM.get(), Config.SPAWN_MIN_GROUP_SIZE_LM.get(), Config.SPAWN_MAX_GROUP_SIZE_LM.get()));
     }
 
 }
