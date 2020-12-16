@@ -51,3 +51,9 @@ description="いろいろ手伝ってくれたりくれなかったりする、�
     versionRange="[1.16.2,)"
     ordering="NONE"
     side="BOTH"
+[[dependencies.littlemaidrebirth]]
+    modId="littlemaidmodelloader"
+    mandatory=true
+    versionRange="[2.3.0,)"
+    ordering="NONE"
+    side="BOTH"
