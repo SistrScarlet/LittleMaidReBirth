@@ -27,7 +27,7 @@ repositories {
     maven { url = 'https://dist.creeper.host/Sponge/maven' }
 }
 
-version = '2.3.5'
+version = '2.4.0'
 group = 'com.sistr.littlemaidrebirth' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'LMRB-Forge-1.16.4'
 
@@ -88,7 +88,7 @@ minecraft {
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
 
-            args '--mod', 'examplemod', '--all', '--output', file('src/generated/resources/')
+            args '--mod', 'littlemaidrebirth', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources')
 
             mods {
                 examplemod {

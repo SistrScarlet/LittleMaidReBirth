@@ -2,7 +2,8 @@ package com.sistr.littlemaidrebirth.setup;
 
 import com.sistr.littlemaidrebirth.entity.LittleMaidContainer;
 import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
-import com.sistr.littlemaidrebirth.item.LittleMaidSpawnEgg;
+import com.sistr.littlemaidrebirth.item.IFFCopyBookItem;
+import com.sistr.littlemaidrebirth.item.LittleMaidSpawnEggItem;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntityType;
 import net.minecraft.inventory.container.ContainerType;
@@ -29,7 +30,8 @@ public class Registration {
 
     //アイテムレジストリ
     //public static final RegistryObject<Item> BATTLE_MANUAL = ITEMS.register("battle_manual", BattleManualItem::new);
-    public static final RegistryObject<Item> LITTLE_MAID_SPAWN_EGG = ITEMS.register("little_maid_spawn_egg", LittleMaidSpawnEgg::new);
+    public static final RegistryObject<Item> LITTLE_MAID_SPAWN_EGG_ITEM = ITEMS.register("little_maid_spawn_egg", LittleMaidSpawnEggItem::new);
+    public static final RegistryObject<Item> IFF_COPY_BOOK_ITEM = ITEMS.register("iff_copy_book", IFFCopyBookItem::new);
 
     public static final EntityType<LittleMaidEntity> LITTLE_MAID_MOB_BEFORE = EntityType.Builder.create((EntityType.IFactory<LittleMaidEntity>) LittleMaidEntity::new, EntityClassification.CREATURE)
             .size(0.5F, 1.35F)

@@ -1,126 +1,65 @@
 package com.sistr.littlemaidrebirth.entity;
 
-import com.google.common.collect.Lists;
 import com.sistr.littlemaidrebirth.util.DefaultedListLimiter;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;
 import net.minecraftforge.common.util.FakePlayer;
 
-import java.util.List;
-
 public class LMInventorySupplier implements InventorySupplier {
-    private final LivingEntity owner;
-    private final FakePlayerSupplier player;
-    private final int size = 18;
-    private IInventory inventory;
-    private ListNBT inventoryTag;
+    private final IInventory inventory;
 
     public LMInventorySupplier(LivingEntity owner, FakePlayerSupplier player) {
-        this.owner = owner;
-        this.player = player;
+        if (!owner.world.isRemote) {
+            FakePlayer fakePlayer = player.getFakePlayer();
+            inventory = new LMInventory(fakePlayer, 19);
+            fakePlayer.inventory = (PlayerInventory) inventory;
+        } else {
+            inventory = new Inventory(18 + 4 + 2);
+        }
     }
 
     @Override
     public IInventory getInventory() {
-        if (inventory == null) {
-            if (!owner.world.isRemote) {
-                FakePlayer fakePlayer = player.getFakePlayer();
-                inventory = new LMInventory(fakePlayer, owner, size);
-                fakePlayer.inventory = (PlayerInventory) inventory;
-                if (inventoryTag != null) readInventory(inventoryTag);
-            } else {
-                inventory = new Inventory(size);
-            }
-        }
         return inventory;
     }
 
-    //デフォのserializeとdeserializeは使うとエラー吐く
-    public void writeInventory(CompoundNBT nbt) {
-        if (inventory == null) {
-            if (inventoryTag != null)
-                nbt.put("Inventory", inventoryTag);
-            return;
-        }
-
-        ListNBT listnbt = new ListNBT();
-
-        for(int index = 0; index < this.size; ++index) {
-            if (!inventory.getStackInSlot(index).isEmpty()) {
-                CompoundNBT compoundnbt = new CompoundNBT();
-                compoundnbt.putByte("Slot", (byte)index);
-                inventory.getStackInSlot(index).write(compoundnbt);
-                listnbt.add(compoundnbt);
-            }
-        }
-
-        List<ItemStack> armorInventory = Lists.newArrayList(this.owner.getArmorInventoryList());
-        for(int index = 0; index < armorInventory.size(); ++index) {
-            if (!armorInventory.get(index).isEmpty()) {
-                CompoundNBT armor = new CompoundNBT();
-                armor.putByte("Slot", (byte)(index + 100));
-                armorInventory.get(index).write(armor);
-                listnbt.add(armor);
-            }
-        }
-
-        List<ItemStack> offHandInventory = Lists.newArrayList(this.owner.getHeldItemOffhand());
-        for(int index = 0; index < offHandInventory.size(); ++index) {
-            if (!offHandInventory.get(index).isEmpty()) {
-                CompoundNBT offhand = new CompoundNBT();
-                offhand.putByte("Slot", (byte)(index + 150));
-                offHandInventory.get(index).write(offhand);
-                listnbt.add(offhand);
-            }
-        }
-        nbt.put("Inventory", listnbt);
+    @Override
+    public void writeInventory(CompoundNBT tag) {
+        tag.put("Inventory", ((LMInventory) this.inventory).write(new ListNBT()));
     }
 
-    public void readInventory(CompoundNBT nbt) {
-        this.inventoryTag = nbt.getList("Inventory", 10);
-        if (inventory != null) readInventory(inventoryTag);
+    @Override
+    public void readInventory(CompoundNBT tag) {
+        ((LMInventory) this.inventory).read(tag.getList("Inventory", 10));
     }
 
-    private void readInventory(ListNBT inventoryTag) {
-        for(int i = 0; i < inventoryTag.size(); ++i) {
-            CompoundNBT tag = inventoryTag.getCompound(i);
-            int slot = tag.getByte("Slot") & 255;
-            ItemStack itemstack = ItemStack.read(tag);
-            if (!itemstack.isEmpty()) {
-                if (slot < this.size) {
-                    inventory.setInventorySlotContents(slot, itemstack);
-                } else if (slot < 100) {
-                    this.owner.entityDropItem(itemstack);
-                } else if (slot < 4 + 100) {
-                    this.owner.setItemStackToSlot(EquipmentSlotType
-                            .fromSlotTypeAndIndex(EquipmentSlotType.Group.ARMOR, slot - 100), itemstack);
-                } else if (slot >= 150 && slot < 1 + 150) {
-                    this.owner.setItemStackToSlot(EquipmentSlotType.OFFHAND, itemstack);
-                }
-            }
-        }
-    }
+    public static class LMInventory extends PlayerInventory {
 
-    private static class LMInventory extends PlayerInventory {
-        private final LivingEntity owner;
-
-        public LMInventory(PlayerEntity player, LivingEntity owner, int size) {
+        public LMInventory(PlayerEntity player, int size) {
             super(player);
-            this.owner = owner;
-            ((DefaultedListLimiter)this.mainInventory).lm_setSizeLimit(size);
+            ((DefaultedListLimiter) this.mainInventory).setSizeLimit_LM(size);
         }
 
         @Override
-        public ItemStack getCurrentItem() {
-            return owner.getHeldItemMainhand();
+        public boolean addItemStackToInventory(ItemStack stack) {
+            boolean isMainEmpty = mainInventory.get(0).isEmpty();
+            if (isMainEmpty) {
+                mainInventory.set(0, Items.GOLDEN_SWORD.getDefaultInstance());
+            }
+            boolean temp = super.addItemStackToInventory(stack);
+            if (isMainEmpty) {
+                mainInventory.set(0, ItemStack.EMPTY);
+            }
+            return temp;
         }
 
     }
+
 }

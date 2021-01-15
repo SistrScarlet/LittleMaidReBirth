@@ -27,6 +27,16 @@ public class Networking {
                 SyncSoundConfigPacket::toBytes,
                 SyncSoundConfigPacket::new,
                 SyncSoundConfigPacket::handle);
+        INSTANCE.registerMessage(nextID(),
+                OpenIFFScreenPacket.class,
+                OpenIFFScreenPacket::toBytes,
+                OpenIFFScreenPacket::new,
+                OpenIFFScreenPacket::handle);
+        INSTANCE.registerMessage(nextID(),
+                SyncIFFPacket.class,
+                SyncIFFPacket::toBytes,
+                SyncIFFPacket::new,
+                SyncIFFPacket::handle);
     }
 
 }

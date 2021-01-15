@@ -1,8 +1,7 @@
-package com.sistr.littlemaidrebirth.util;
+package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.sistr.littlemaidrebirth.entity.mode.Mode;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tags.Tag;

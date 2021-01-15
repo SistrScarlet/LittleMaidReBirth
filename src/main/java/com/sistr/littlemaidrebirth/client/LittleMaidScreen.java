@@ -1,14 +1,16 @@
-package com.sistr.littlemaidrebirth.entity;
+package com.sistr.littlemaidrebirth.client;
 
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.sistr.littlemaidrebirth.LittleMaidReBirthMod;
+import com.sistr.littlemaidrebirth.entity.LittleMaidContainer;
+import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
+import com.sistr.littlemaidrebirth.network.OpenIFFScreenPacket;
 import com.sistr.littlemaidrebirth.network.SyncMovingStatePacket;
 import com.sistr.littlemaidrebirth.network.SyncSoundConfigPacket;
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 import net.minecraft.client.gui.screen.inventory.InventoryScreen;
 import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.util.InputMappings;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -30,7 +32,10 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
     private static final ResourceLocation GUI =
             new ResourceLocation("lmreengaged", "textures/gui/container/littlemaidinventory2.png");
     private static final ResourceLocation ICONS = new ResourceLocation("textures/gui/icons.png");
-    private static final ItemStack ARMOR = Items.DIAMOND_CHESTPLATE.getDefaultInstance();
+    private static final ItemStack ARMOR = Items.LEATHER_CHESTPLATE.getDefaultInstance();
+    private static final ItemStack BOOK = Items.BOOK.getDefaultInstance();
+    private static final ItemStack NOTE = Items.NOTE_BLOCK.getDefaultInstance();
+    private static final ItemStack FEATHER = Items.FEATHER.getDefaultInstance();
     private final LittleMaidEntity openAt;
     private ITextComponent stateText;
 
@@ -47,42 +52,43 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
             minecraft.displayGuiScreen(null);
             return;
         }
-        int left = (int) ((this.width - xSize) / 2F);
+        int left = (int) ((this.width - xSize) / 2F) - 5;
         int top = (int) ((this.height - ySize) / 2F);
-        this.addButton(new Button(left - 20, top + 20, 20, 20, new StringTextComponent(""), button -> {
-            openAt.setConfigHolder(LMConfigManager.INSTANCE.getAnyConfig());
-            SyncSoundConfigPacket.sendC2SPacket(openAt, openAt.getConfigHolder().getName());
-        }) {
+        int size = 20;
+        int layer = -1;
+        this.addButton(new Button(left - size, top + size * ++layer, size, size, new StringTextComponent(""),
+                button -> OpenIFFScreenPacket.sendC2SPacket(openAt)) {
             @Override
-            public void renderButton(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-                super.renderButton(matrixStack, mouseX, mouseY, partialTicks);
-                String text = "S";
-                font.drawStringWithShadow(matrixStack, text,
-                        this.x + (this.width - font.getStringWidth(text)) / 2F,
-                        this.y + (this.height - font.FONT_HEIGHT) / 2F, 0xFFFFFF);
-                if (this.isHovered()) {
-                    renderToolTip(matrixStack, mouseX, mouseY);
-                }
-            }
-
-            @Override
-            public void renderToolTip(MatrixStack matrixStack, int x, int y) {
-                super.renderToolTip(matrixStack, x, y);
-                String text = openAt.getConfigHolder().getName();
-                float renderX = Math.max(0, x - font.getStringWidth(text) / 2F);
-                font.drawStringWithShadow(matrixStack, text, renderX,
-                        y - font.FONT_HEIGHT / 2F, 0xFFFFFF);
+            public void renderButton(MatrixStack matrices, int mouseX, int mouseY, float partialTicks) {
+                super.renderButton(matrices, mouseX, mouseY, partialTicks);
+                itemRenderer.renderItemIntoGUI(BOOK, this.x - 8 + this.width / 2, this.y - 8 + this.height / 2);
             }
         });
-        this.addButton(new Button(left - 20, top + 40, 20, 20, new StringTextComponent(""), button ->
-                minecraft.displayGuiScreen(new ModelSelectScreen(title, openAt.world, (IHasMultiModel) openAt))) {
+        this.addButton(new Button(left - size, top + size * ++layer, size, size, new StringTextComponent(""),
+                button -> {
+                    openAt.setConfigHolder(LMConfigManager.INSTANCE.getAnyConfig());
+                    SyncSoundConfigPacket.sendC2SPacket(openAt, openAt.getConfigHolder().getName());
+                }, (button, matrices, x, y) -> {
+            String text = openAt.getConfigHolder().getName();
+            float renderX = Math.max(0, x - font.getStringWidth(text) / 2F);
+            font.drawStringWithShadow(matrices, text, renderX,
+                    y - font.FONT_HEIGHT / 2F, 0xFFFFFF);
+        }) {
+            @Override
+            public void renderButton(MatrixStack matrices, int mouseX, int mouseY, float partialTicks) {
+                super.renderButton(matrices, mouseX, mouseY, partialTicks);
+                itemRenderer.renderItemIntoGUI(NOTE, this.x - 8 + this.width / 2, this.y - 8 + this.height / 2);
+            }
+        });
+        this.addButton(new Button(left - size, top + size * ++layer, size, size, new StringTextComponent(""),
+                button -> minecraft.displayGuiScreen(new ModelSelectScreen(title, openAt.world, (IHasMultiModel) openAt))) {
             @Override
             public void renderButton(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
                 super.renderButton(matrixStack, mouseX, mouseY, partialTicks);
                 itemRenderer.renderItemIntoGUI(ARMOR, this.x - 8 + this.width / 2, this.y - 8 + this.height / 2);
             }
         });
-        this.addButton(new Button(left - 20, top + 60, 20, 20, new StringTextComponent(""),
+        this.addButton(new Button(left - size, top + size * ++layer, size, size, new StringTextComponent(""),
                 button -> {
                     openAt.changeMovingState();
                     stateText = getStateText();
@@ -90,10 +96,7 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
             @Override
             public void renderButton(MatrixStack matrixStack, int mouseX, int mouseY, float delta) {
                 super.renderButton(matrixStack, mouseX, mouseY, delta);
-                String state = openAt.getMovingState().substring(0, 2);
-                font.drawStringWithShadow(matrixStack, state,
-                        this.x + (this.width - font.getStringWidth(state)) / 2F,
-                        this.y + (this.height - font.FONT_HEIGHT) / 2F, 0xFFFFFF);
+                itemRenderer.renderItemIntoGUI(FEATHER, this.x - 8 + this.width / 2, this.y - 8 + this.height / 2);
             }
         });
         stateText = getStateText();
@@ -135,7 +138,7 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
         float left = (width - xSize) / 2F;
         float top = (height - ySize) / 2F;
         if (left + 7 <= mouseX && mouseX < left + 96 && top + 7 <= mouseY && mouseY < top + 60) {
-            drawArmor(matrixStack, mouseX, mouseY);
+            drawArmor(matrixStack);
         } else {
             drawHealth(matrixStack, mouseX, mouseY);
         }
@@ -157,7 +160,7 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
         this.minecraft.getTextureManager().bindTexture(GUI);
     }
 
-    protected void drawArmor(MatrixStack matrixStack, int mouseX, int mouseY) {
+    protected void drawArmor(MatrixStack matrixStack) {
         float armor = openAt.getTotalArmorValue();
         drawArmor(matrixStack, 98, 7, MathHelper.clamp(armor - 10, 0, 10), 5);
         drawArmor(matrixStack, 98, 16, MathHelper.clamp(armor, 0, 10), 5);

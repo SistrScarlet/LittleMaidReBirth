@@ -2,7 +2,6 @@ package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.google.common.collect.Sets;
 import com.sistr.littlemaidrebirth.entity.InventorySupplier;
-import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.Item;

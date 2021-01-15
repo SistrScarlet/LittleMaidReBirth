@@ -2,6 +2,6 @@ package com.sistr.littlemaidrebirth.util;
 
 public interface DefaultedListLimiter {
 
-    void lm_setSizeLimit(int limit);
+    void setSizeLimit_LM(int limit);
 
 }

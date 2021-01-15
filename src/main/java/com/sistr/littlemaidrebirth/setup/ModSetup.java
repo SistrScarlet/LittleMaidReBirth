@@ -3,9 +3,13 @@ package com.sistr.littlemaidrebirth.setup;
 import com.sistr.littlemaidrebirth.Config;
 import com.sistr.littlemaidrebirth.LittleMaidReBirthMod;
 import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
+import com.sistr.littlemaidrebirth.entity.iff.IFFTag;
+import com.sistr.littlemaidrebirth.entity.iff.IFFType;
+import com.sistr.littlemaidrebirth.entity.iff.IFFTypeManager;
 import com.sistr.littlemaidrebirth.network.Networking;
 import net.minecraft.entity.EntityClassification;
 import net.minecraft.entity.EntitySpawnPlacementRegistry;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ai.attributes.GlobalEntityTypeAttributes;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
@@ -17,6 +21,7 @@ import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod.EventBusSubscriber(modid = LittleMaidReBirthMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ModSetup {
@@ -35,7 +40,12 @@ public class ModSetup {
                 LittleMaidEntity.registerAttributes().create());
         EntitySpawnPlacementRegistry.register(
                 Registration.LITTLE_MAID_MOB.get(), EntitySpawnPlacementRegistry.PlacementType.ON_GROUND,
-                Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, LittleMaidEntity::canLittleMaidSpawn);
+                Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, (littleMaid, worldIn, reason, pos, random) -> LittleMaidEntity.canLittleMaidSpawn(worldIn, pos));
+
+        IFFTypeManager iffTypeManager = IFFTypeManager.getINSTANCE();
+        ForgeRegistries.ENTITIES.getValues().stream().filter(EntityType::isSummonable).forEach(entityType ->
+                iffTypeManager.register(EntityType.getKey(entityType),
+                        new IFFType(IFFTag.UNKNOWN, entityType)));
     }
 
     @SubscribeEvent

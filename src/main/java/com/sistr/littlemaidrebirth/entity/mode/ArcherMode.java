@@ -2,7 +2,6 @@ package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.sistr.littlemaidrebirth.entity.AimingPoseable;
 import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
-import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -161,10 +160,6 @@ public class ArcherMode implements Mode {
                     return;
                 }
             }
-
-            fakePlayer.rotationYaw = this.mob.rotationYaw;
-            fakePlayer.rotationPitch = this.mob.rotationPitch;
-            fakePlayer.setPosition(mob.getPosX(), mob.getPosY(), mob.getPosZ());
 
             fakePlayer.stopActiveHand();
 

@@ -2,7 +2,6 @@ package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.google.common.collect.Lists;
 import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
-import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.CreatureEntity;

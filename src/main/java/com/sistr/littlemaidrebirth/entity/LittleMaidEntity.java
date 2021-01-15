@@ -4,9 +4,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.sistr.littlemaidrebirth.Config;
 import com.sistr.littlemaidrebirth.entity.goal.*;
-import com.sistr.littlemaidrebirth.entity.iff.HasIFF;
+import com.sistr.littlemaidrebirth.entity.iff.*;
 import com.sistr.littlemaidrebirth.entity.mode.*;
+import com.sistr.littlemaidrebirth.item.IFFCopyBookItem;
 import com.sistr.littlemaidrebirth.setup.Registration;
+import com.sistr.littlemaidrebirth.tags.LMTags;
 import com.sistr.littlemaidrebirth.util.LivingAccessor;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.attributes.AttributeModifierMap;
@@ -22,6 +24,7 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.entity.projectile.SnowballEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.container.SimpleNamedContainerProvider;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -65,10 +68,8 @@ import net.sistr.lmml.resource.util.TextureColors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 //メイドさん本体
 //継承しないのが吉
@@ -84,17 +85,18 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     private final InventorySupplier littleMaidInventory = new LMInventorySupplier(this, fakePlayer);
     //todo お給料機能とテイム機能一緒にした方がよさげ
     private final TickTimeBaseNeedSalary needSalary =
-            new TickTimeBaseNeedSalary(this, this, 7, Lists.newArrayList(Items.SUGAR));
+            new TickTimeBaseNeedSalary(this, this, 7, Lists.newArrayList(LMTags.Items.MAIDS_SALARY.getAllElements()));
     private final ModeController modeController = new ModeController(this, this, Sets.newHashSet());
     private final MultiModelCompound multiModel;
     private final SoundPlayableCompound soundPlayer;
-    private BlockPos freedomPos;
+    private final HasIFF iff;
     private final IModelCaps caps = new LittleMaidModelCaps(this);
+    private BlockPos freedomPos;
+    private LivingEntity prevTarget;
     @OnlyIn(Dist.CLIENT)
     private float interestedAngle;
     @OnlyIn(Dist.CLIENT)
     private float prevInterestedAngle;
-    private LivingEntity prevTarget;
 
     //コンストラクタ
     public LittleMaidEntity(EntityType<LittleMaidEntity> type, World worldIn) {
@@ -109,29 +111,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         soundPlayer = new SoundPlayableCompound(this, () ->
                 multiModel.getTextureHolder(Layer.SKIN, Part.HEAD).getTextureName());
         addDefaultModes(this);
-    }
-
-    public LittleMaidEntity(World world) {
-        super(Registration.LITTLE_MAID_MOB.get(), world);
-        this.moveController = new FixedMoveControl(this);
-        ((GroundPathNavigator)getNavigator()).setBreakDoors(true);
-        multiModel = new MultiModelCompound(this,
-                LMTextureManager.INSTANCE.getTexture("Default")
-                        .orElseThrow(() -> new IllegalStateException("デフォルトテクスチャが存在しません。")),
-                LMTextureManager.INSTANCE.getTexture("Default")
-                        .orElseThrow(() -> new IllegalStateException("デフォルトテクスチャが存在しません。")));
-        soundPlayer = new SoundPlayableCompound(this, () ->
-                multiModel.getTextureHolder(Layer.SKIN, Part.HEAD).getTextureName());
-        addDefaultModes(this);
-    }
-
-    public LittleMaidEntity(World world, MultiModelCompound multiModel, SoundPlayableCompound soundPlayer) {
-        super(Registration.LITTLE_MAID_MOB.get(), world);
-        this.moveController = new FixedMoveControl(this);
-        ((GroundPathNavigator)getNavigator()).setBreakDoors(true);
-        this.multiModel = multiModel;
-        this.soundPlayer = soundPlayer;
-        addDefaultModes(this);
+        iff = new IFFImpl(IFFTypeManager.getINSTANCE().getIFFTypes(world).stream()
+                .map(IFFType::createIFF).collect(Collectors.toList()));
     }
 
     //スタティックなメソッド
@@ -146,8 +127,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 .createMutableAttribute(ForgeMod.REACH_DISTANCE.get());
     }
 
-    public static boolean canLittleMaidSpawn(EntityType<LittleMaidEntity> littleMaid, IWorld worldIn,
-                                             SpawnReason reason, BlockPos pos, Random random) {
+    public static boolean canLittleMaidSpawn(IWorld worldIn, BlockPos pos) {
         return worldIn.getBlockState(pos.down()).isOpaqueCube(worldIn, pos)
                 && worldIn.getLightSubtracted(pos, 0) > 8;
     }
@@ -168,7 +148,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         this.goalSelector.addGoal(0, new SwimGoal(this));
         this.goalSelector.addGoal(1, new OpenDoorGoal(this, true));
         this.goalSelector.addGoal(5, new HealMyselfGoal(this, this,
-                Sets.newHashSet(Items.SUGAR), 2, 1));
+                Sets.newHashSet(LMTags.Items.MAIDS_SALARY.getAllElements()), 2, 1));
         this.goalSelector.addGoal(10, new WaitGoal(this, this));
         //todo 挙動が怪しい
         /*this.goalSelector.addGoal(12, new WaitWhenOpenGUIGoal<>(this, this,
@@ -177,11 +157,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 16F, 20F, 24F, 1.5D));
         this.goalSelector.addGoal(15, new ModeWrapperGoal(this));
         this.goalSelector.addGoal(16, new FollowAtHeldItemGoal(this, this, true,
-                Sets.newHashSet(Items.SUGAR)));
-        this.goalSelector.addGoal(17, new LMStareAtHeldItemGoal(this, this, false
-                , Sets.newHashSet(Items.CAKE)));
+                Sets.newHashSet(LMTags.Items.MAIDS_SALARY.getAllElements())));
+        this.goalSelector.addGoal(17, new LMStareAtHeldItemGoal(this, this, false,
+                Sets.newHashSet(LMTags.Items.MAIDS_EMPLOYABLE.getAllElements())));
         this.goalSelector.addGoal(17, new LMStareAtHeldItemGoal(this, this, true,
-                Sets.newHashSet(Items.SUGAR)));
+                Sets.newHashSet(LMTags.Items.MAIDS_SALARY.getAllElements())));
         this.goalSelector.addGoal(18, new LMMoveToDropItemGoal(this, 8, 1D));
         this.goalSelector.addGoal(19, new EscortGoal(this, this,
                 6F, 8F, 12F, 1.5D));
@@ -191,11 +171,12 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         this.goalSelector.addGoal(30, new LookAtGoal(this, PlayerEntity.class, 8.0F));
         this.goalSelector.addGoal(30, new LookRandomlyGoal(this));
 
-        this.targetSelector.addGoal(3, new HurtByTargetGoal(this));
+        this.targetSelector.addGoal(3, new PredicateRevengeGoal(this, this::isFriend));
         this.targetSelector.addGoal(4, new OwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(5, new OwnerHurtTargetGoal(this));
-        this.targetSelector.addGoal(6, new NearestAttackableTargetGoal<>(this, MobEntity.class,
-                10, true, false, this::isEnemy));
+        this.targetSelector.addGoal(6, new NearestAttackableTargetGoal<>(
+                this, MobEntity.class, 10, true, false,
+                entity -> identify(entity) == IFFTag.ENEMY));
     }
 
     @Override
@@ -213,7 +194,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     public void writeAdditional(CompoundNBT tag) {
         super.writeAdditional(tag);
 
-        littleMaidInventory.writeInventory(tag);
+        writeInventory(tag);
 
         tag.putString("MovingState", getMovingState());
 
@@ -236,12 +217,14 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
         tag.putString("SoundConfigName", getConfigHolder().getName());
 
+        writeIFF(tag);
+
     }
 
     @Override
     public void readAdditional(CompoundNBT tag) {
         super.readAdditional(tag);
-        littleMaidInventory.readInventory(tag);
+        readInventory(tag);
 
         if (tag.contains("MovingState"))
             setMovingState(tag.getString("MovingState"));
@@ -280,6 +263,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             LMConfigManager.INSTANCE.getConfig(tag.getString("SoundConfigName"))
                     .ifPresent(this::setConfigHolder);
         }
+
+        readIFF(tag);
     }
 
     //鯖
@@ -446,47 +431,6 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     }
 
     @Override
-    protected void dropSpecialItems(DamageSource source, int looting, boolean recentlyHitIn) {
-        for (EquipmentSlotType slot : EquipmentSlotType.values()) {
-            if (slot.getSlotType() == EquipmentSlotType.Group.ARMOR) {
-                ItemStack stack = getItemStackFromSlot(slot);
-                this.entityDropItem(stack);
-                this.setItemStackToSlot(slot, ItemStack.EMPTY);
-            }
-        }
-    }
-
-    @Override
-    protected void dropInventory() {
-        super.dropInventory();
-        this.entityDropItem(getItemStackFromSlot(EquipmentSlotType.OFFHAND));
-        this.setItemStackToSlot(EquipmentSlotType.OFFHAND, ItemStack.EMPTY);
-        if (!world.isRemote)
-            ((PlayerInventory)this.getInventory()).dropAllItems();
-    }
-
-    //防具の更新およびオフハンドの位置ズラし
-
-    @Override
-    public void setItemStackToSlot(EquipmentSlotType slot, ItemStack stack) {
-        if (slot.getSlotType() == EquipmentSlotType.Group.ARMOR) {
-            multiModel.updateArmor();
-        } else if (!world.isRemote && slot == EquipmentSlotType.OFFHAND) {
-            ((PlayerInventory)getInventory()).offHandInventory.set(0, stack);
-            return;
-        }
-        super.setItemStackToSlot(slot, stack);
-    }
-
-    @Override
-    public ItemStack getItemStackFromSlot(EquipmentSlotType slot) {
-        if (!world.isRemote && slot == EquipmentSlotType.OFFHAND) {
-            return ((PlayerInventory)getInventory()).offHandInventory.get(0);
-        }
-        return super.getItemStackFromSlot(slot);
-    }
-
-    @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
         if (!world.isRemote) {
             //味方のが当たってもちゃんと動くようにフレンド判定より前
@@ -496,8 +440,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             }
         }
         Entity attacker = source.getTrueSource();
-        //Friend及び、自身と同じUUIDの者(自身のFakePlayer)を除外
-        if (attacker != null && (isFriend(attacker) || this.getUniqueID().equals(attacker.getUniqueID()))) {
+        //Friendからの攻撃を除外
+        if (attacker instanceof LivingEntity && isFriend((LivingEntity) attacker)) {
             return false;
         }
         boolean isHurtTime = 0 < this.hurtTime;
@@ -518,28 +462,6 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         return result;
     }
 
-    @Override
-    protected void damageArmor(DamageSource damageSource, float damage) {
-        super.damageArmor(damageSource, damage);
-        ((PlayerInventory)getInventory()).func_234563_a_(damageSource, damage);
-    }
-
-    public boolean isFriend(Entity entity) {
-        UUID ownerId = this.getOwnerId();
-        if (ownerId != null) {
-            //主はフレンド
-            if (ownerId.equals(entity.getUniqueID())) {
-                return true;
-            }
-            //同じ主を持つ者はフレンド
-            if (entity instanceof Tameable && ownerId.equals(((Tameable) entity).getTameOwnerUuid().orElse(null))
-                    || entity instanceof TameableEntity && ownerId.equals(((TameableEntity) entity).getOwnerId())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     //todo 以下数メソッドにはもうちと整理が必要か
 
     //trueでアイテムが使用された、falseでされなかった
@@ -548,12 +470,12 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     @Override
     public ActionResultType func_230254_b_(PlayerEntity player, Hand hand) {
         ItemStack stack = player.getHeldItem(hand);
-        if (player.isSecondaryUseActive()) {
+        if (player.isSecondaryUseActive() || stack.getItem() instanceof IFFCopyBookItem) {
             return ActionResultType.PASS;
         }
         //ストライキ中、ケーキじゃないなら不満気にしてリターン
         //クライアント側にはストライキかどうかは判定できない
-        if (isStrike() && stack.getItem() != Items.CAKE) {
+        if (isStrike() && LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
             if (world instanceof ServerWorld)
                 ((ServerWorld) world).spawnParticle(ParticleTypes.SMOKE,
                         this.getPosX() + (0.5F - rand.nextFloat()) * 0.2F,
@@ -565,16 +487,16 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         }
         if (hasTameOwner()) {
             if (isStrike()) {
-                if (stack.getItem() == Items.CAKE) {
+                if (LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
                     return contract(player, stack, true);
                 }
                 return ActionResultType.PASS;
             }
-            if (stack.getItem() == Items.SUGAR) {
+            if (LMTags.Items.MAIDS_SALARY.contains(stack.getItem())) {
                 return changeState(player, stack);
             }
         } else {
-            if (stack.getItem() == Items.CAKE) {
+            if (LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
                 return contract(player, stack, false);
             }
         }
@@ -611,9 +533,6 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             case Tameable.ESCORT:
                 setMovingState(Tameable.FREEDOM);
                 this.freedomPos = getPosition();
-                break;
-            case Tameable.FREEDOM:
-                setMovingState(Tameable.WAIT);
                 break;
             default:
                 setMovingState(Tameable.WAIT);
@@ -656,7 +575,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         setModeName(getMode().map(Mode::getName).orElse(""));
         NetworkHooks.openGui((ServerPlayerEntity) player,
                 new SimpleNamedContainerProvider((windowId, inv, playerEntity) ->
-                        new LittleMaidContainer(windowId, inv, this), new StringTextComponent("")),
+                        new LittleMaidContainer(windowId, inv, this.getEntityId()), new StringTextComponent("")),
                 buf -> buf.writeVarInt(this.getEntityId()));
     }
 
@@ -686,6 +605,60 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         } else {
             return super.replaceItemInInventory(inventorySlot, itemStackIn);
         }
+    }
+
+    //防具の更新およびオフハンドの位置ズラし
+    @Override
+    public void setItemStackToSlot(EquipmentSlotType slot, ItemStack stack) {
+        if (slot.getSlotType() == EquipmentSlotType.Group.ARMOR) {
+            IInventory inv = getInventory();
+            inv.setInventorySlotContents(1 + 18 + slot.getIndex(), stack);
+            multiModel.updateArmor();
+        } else if (slot == EquipmentSlotType.MAINHAND) {
+            getInventory().setInventorySlotContents(0, stack);
+        } else if (slot == EquipmentSlotType.OFFHAND) {
+            getInventory().setInventorySlotContents(18 + 4 + 1, stack);
+        }
+    }
+
+    @Override
+    public ItemStack getItemStackFromSlot(EquipmentSlotType slot) {
+        if (slot.getSlotType() == EquipmentSlotType.Group.ARMOR) {
+            return getInventory().getStackInSlot(1 + 18 + slot.getIndex());
+        } else if (slot == EquipmentSlotType.MAINHAND) {
+            return getInventory().getStackInSlot(0);
+        } else if (slot == EquipmentSlotType.OFFHAND) {
+            return getInventory().getStackInSlot(18 + 4 + 1);
+        }
+        return ItemStack.EMPTY;
+    }
+
+    @Override
+    public Iterable<ItemStack> getHeldEquipment() {
+        return () -> Lists.newArrayList(getHeldItemMainhand(), getHeldItemOffhand()).iterator();
+    }
+
+    @Override
+    public Iterable<ItemStack> getArmorInventoryList() {
+        return () -> Lists.newArrayList(
+                getItemStackFromSlot(EquipmentSlotType.FEET),
+                getItemStackFromSlot(EquipmentSlotType.LEGS),
+                getItemStackFromSlot(EquipmentSlotType.CHEST),
+                getItemStackFromSlot(EquipmentSlotType.HEAD)).iterator();
+    }
+
+    @Override
+    protected void dropInventory() {
+        //鯖側でしか動かないが一応チェック
+        IInventory inv = this.getInventory();
+        if (inv instanceof PlayerInventory)
+            ((LMInventorySupplier.LMInventory) inv).dropAllItems();
+    }
+
+    @Override
+    protected void damageArmor(DamageSource damageSource, float damage) {
+        super.damageArmor(damageSource, damage);
+        ((PlayerInventory)getInventory()).func_234563_a_(damageSource, damage);
     }
 
     //テイム関連
@@ -852,10 +825,47 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     //IFF
 
     @Override
-    public boolean isEnemy(Entity entity) {
-        return entity instanceof IMob
-                && !(entity instanceof CreeperEntity)
-                && !(entity instanceof EndermanEntity);
+    public IFFTag identify(LivingEntity target) {
+        return iff.identify(target);
+    }
+
+    @Override
+    public void setIFFs(List<IFF> iffs) {
+        iff.setIFFs(iffs);
+    }
+
+    @Override
+    public List<IFF> getIFFs() {
+        return iff.getIFFs();
+    }
+
+    @Override
+    public void writeIFF(CompoundNBT tag) {
+        iff.writeIFF(tag);
+    }
+
+    @Override
+    public void readIFF(CompoundNBT tag) {
+        iff.readIFF(tag);
+    }
+
+    @Override
+    public boolean shouldAttackEntity(LivingEntity target, LivingEntity owner) {
+        return identify(target) != IFFTag.FRIEND;
+    }
+
+    public boolean isFriend(LivingEntity entity) {
+        UUID ownerId = this.getOwnerId();
+        if (ownerId != null) {
+            //主はフレンド
+            if (ownerId.equals(entity.getUniqueID())) {
+                return true;
+            }
+            //同じ主を持つ者はフレンド
+            return entity instanceof Tameable && ownerId.equals(((Tameable) entity).getTameOwnerUuid().orElse(null))
+                    || entity instanceof TameableEntity && ownerId.equals(((TameableEntity) entity).getOwnerId());
+        }
+        return identify(entity) == IFFTag.FRIEND;
     }
 
     //エイム

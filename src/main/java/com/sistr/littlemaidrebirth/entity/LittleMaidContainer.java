@@ -5,7 +5,6 @@ import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.container.Container;
 import net.minecraft.inventory.container.Slot;
@@ -18,30 +17,10 @@ import net.minecraftforge.items.wrapper.InvWrapper;
 import javax.annotation.Nullable;
 
 public class LittleMaidContainer extends Container implements HasGuiEntitySupplier<LittleMaidEntity> {
-    private final InvWrapper playerInventory;
-    private final InvWrapper maidInventory;
-    private final IInventory handsInventory = new Inventory(2) {
-        @Override
-        public void setInventorySlotContents(int index, ItemStack stack) {
-            super.setInventorySlotContents(index, stack);
-            if (maid == null) return;
-            maid.setItemStackToSlot(EquipmentSlotType.fromSlotTypeAndIndex(EquipmentSlotType.Group.HAND, index), stack);
-        }
-    };
-    private final IInventory armorsInventory = new Inventory(4) {
-        @Override
-        public void setInventorySlotContents(int index, ItemStack stack) {
-            super.setInventorySlotContents(index, stack);
-            if (maid == null) return;
-            maid.setItemStackToSlot(EquipmentSlotType.fromSlotTypeAndIndex(EquipmentSlotType.Group.ARMOR, index), stack);
-        }
-    };
+    private final IItemHandler playerInventory;
+    private final IItemHandler maidInventory;
     @Nullable
     private final LittleMaidEntity maid;
-
-    public LittleMaidContainer(int windowId, PlayerInventory inv, LittleMaidEntity maid) {
-        this(windowId, inv, maid.getEntityId());
-    }
 
     public LittleMaidContainer(int windowId, PlayerInventory inv, PacketBuffer data) {
         this(windowId, inv, data.readVarInt());
@@ -50,27 +29,25 @@ public class LittleMaidContainer extends Container implements HasGuiEntitySuppli
     public LittleMaidContainer(int windowId, PlayerInventory inv, int entityId) {
         super(Registration.LITTLE_MAID_CONTAINER.get(), windowId);
         this.playerInventory = new InvWrapper(inv);
+
         LittleMaidEntity maid = (LittleMaidEntity) inv.player.world.getEntityByID(entityId);
         this.maid = maid;
-        if (maid == null) {
-            maidInventory = new InvWrapper(new Inventory(18));
-        } else {
+        if (maid == null)
+            maidInventory = new InvWrapper(new Inventory(18 + 4 + 2));
+        else
             maidInventory = new InvWrapper(maid.getInventory());
-            for (EquipmentSlotType type : EquipmentSlotType.values()) {
-                if (type.getSlotType() == EquipmentSlotType.Group.HAND) {
-                    this.handsInventory.setInventorySlotContents(type.getIndex(), maid.getItemStackFromSlot(type));
-                }
-                if (type.getSlotType() == EquipmentSlotType.Group.ARMOR) {
-                    this.armorsInventory.setInventorySlotContents(type.getIndex(), maid.getItemStackFromSlot(type));
-                }
-            }
-        }
+
         layoutMaidInventorySlots();
         layoutPlayerInventorySlots(8, 126);
     }
 
     public LittleMaidEntity getGuiEntity() {
         return maid;
+    }
+
+    @Override
+    public boolean canInteractWith(PlayerEntity playerIn) {
+        return this.maid != null && this.maid.isAlive() && this.maid.getDistanceSq(playerIn) < 8.0F * 8.0F;
     }
 
     //18 + 2 + 4 = 24、24 + 4 * 9 = 60
@@ -107,11 +84,6 @@ public class LittleMaidContainer extends Container implements HasGuiEntitySuppli
         return newStack;
     }
 
-    @Override
-    public boolean canInteractWith(PlayerEntity playerIn) {
-        return this.maid != null && this.maid.isAlive() && this.maid.getDistance(playerIn) < 8.0F;
-    }
-
     private int addSlotRange(IItemHandler handler, int index, int x, int y, int amount, int dx) {
         for (int i = 0; i < amount; i++) {
             addSlot(new SlotItemHandler(handler, index, x, y));
@@ -139,33 +111,33 @@ public class LittleMaidContainer extends Container implements HasGuiEntitySuppli
     }
 
     private void layoutMaidInventorySlots() {
-        //メイドインベントリ
-        addSlotBox(maidInventory, 0, 8, 76, 9, 18, 2, 18);
+        //index 0~17
+        addSlotBox(maidInventory, 1, 8, 76, 9, 18, 2, 18);
 
-        //main/off
-        addSlot(new Slot(handsInventory, 0, 116, 44));
-        addSlot(new Slot(handsInventory, 1, 152, 44));
+        //18~19
+        addSlot(new SlotItemHandler(maidInventory, 0, 116, 44));
+        addSlot(new SlotItemHandler(maidInventory, 1 + 18 + 4, 152, 44));
 
-        //head/chest/legs/feet
-        addSlot(new Slot(armorsInventory, EquipmentSlotType.HEAD.getIndex(), 8, 8) {
+        //20~23
+        addSlot(new SlotItemHandler(maidInventory, 1 + 18 + EquipmentSlotType.HEAD.getIndex(), 8, 8) {
             @Override
             public boolean isItemValid(ItemStack stack) {
                 return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.HEAD;
             }
         });
-        addSlot(new Slot(armorsInventory, EquipmentSlotType.CHEST.getIndex(), 8, 44) {
+        addSlot(new SlotItemHandler(maidInventory, 1 + 18 + EquipmentSlotType.CHEST.getIndex(), 8, 44) {
             @Override
             public boolean isItemValid(ItemStack stack) {
                 return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.CHEST;
             }
         });
-        addSlot(new Slot(armorsInventory, EquipmentSlotType.LEGS.getIndex(), 80, 8) {
+        addSlot(new SlotItemHandler(maidInventory, 1 + 18 + EquipmentSlotType.LEGS.getIndex(), 80, 8) {
             @Override
             public boolean isItemValid(ItemStack stack) {
                 return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.LEGS;
             }
         });
-        addSlot(new Slot(armorsInventory, EquipmentSlotType.FEET.getIndex(), 80, 44) {
+        addSlot(new SlotItemHandler(maidInventory, 1 + 18 + EquipmentSlotType.FEET.getIndex(), 80, 44) {
             @Override
             public boolean isItemValid(ItemStack stack) {
                 return MobEntity.getSlotForItemStack(stack) == EquipmentSlotType.FEET;

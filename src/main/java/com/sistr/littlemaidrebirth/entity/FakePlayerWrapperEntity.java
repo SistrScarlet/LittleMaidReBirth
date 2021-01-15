@@ -6,7 +6,10 @@ import com.sistr.littlemaidrebirth.util.PlayerAccessor;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import net.minecraft.advancements.PlayerAdvancements;
-import net.minecraft.entity.*;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntitySize;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.Pose;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.network.IPacket;
 import net.minecraft.network.NetworkManager;
@@ -44,12 +47,18 @@ public abstract class FakePlayerWrapperEntity extends FakePlayer {
     public void tick() {
         //Fencer
         ++ticksSinceLastSwing;
-        ((LivingAccessor)this).applyEquipmentAttributes_LM();
+        ((LivingAccessor) this).applyEquipmentAttributes_LM();
         //Archer
-        ((LivingAccessor)this).tickActiveItemStack_LM();
+        ((LivingAccessor) this).tickActiveItemStack_LM();
 
         //アイテム回収
         pickupItems();
+
+        //InventoryTick
+        this.inventory.tick();
+
+        setPositionAndRotation(getOrigin().getPosX(), getOrigin().getPosY(), getOrigin().getPosZ(),
+                this.getOrigin().rotationYaw, this.getOrigin().rotationPitch);
     }
 
     private void pickupItems() {
@@ -65,7 +74,7 @@ public abstract class FakePlayerWrapperEntity extends FakePlayer {
 
             for (Entity entity : list) {
                 if (!entity.removed && entity != getOrigin()) {
-                    ((PlayerAccessor)this).onCollideWithEntity_LM(entity);
+                    ((PlayerAccessor) this).onCollideWithEntity_LM(entity);
                 }
             }
         }

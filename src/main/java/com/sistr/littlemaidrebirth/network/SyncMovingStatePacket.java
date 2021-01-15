@@ -66,14 +66,13 @@ public class SyncMovingStatePacket {
 
     public static void applyMovingStateServer(PlayerEntity player, int entityId, String state) {
         Entity entity = player.world.getEntityByID(entityId);
-        if (entity instanceof Tameable) {
-            if (!((Tameable) entity).getTameOwnerUuid()
-                    .filter(ownerId -> ownerId.equals(player.getUniqueID()))
-                    .isPresent()) {
-                return;
-            }
-            ((Tameable) entity).setMovingState(state);
+        if (!(entity instanceof Tameable)
+                || !((Tameable) entity).getTameOwnerUuid()
+                .filter(ownerId -> ownerId.equals(player.getUniqueID()))
+                .isPresent()) {
+            return;
         }
+        ((Tameable) entity).setMovingState(state);
     }
 
 }

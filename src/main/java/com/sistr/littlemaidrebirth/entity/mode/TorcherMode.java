@@ -2,7 +2,6 @@ package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import com.sistr.littlemaidrebirth.entity.Tameable;
-import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.block.Block;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.Entity;

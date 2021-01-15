@@ -2,12 +2,10 @@ package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import com.sistr.littlemaidrebirth.util.MeleeAttackAccessor;
-import com.sistr.littlemaidrebirth.util.ModeManager;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.AxeItem;
 import net.minecraft.item.SwordItem;
 import net.minecraft.nbt.CompoundNBT;
