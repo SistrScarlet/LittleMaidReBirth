@@ -471,8 +471,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         if (player.isSecondaryUseActive() || stack.getItem() instanceof IFFCopyBookItem) {
             return ActionResultType.PASS;
         }
-        if (!hasTameOwner() && LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
-            return contract(player, stack, false);
+        if (!hasTameOwner()) {
+            if (LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
+                return contract(player, stack, false);
+            }
+            return ActionResultType.PASS;
         }
         if (!player.getUniqueID().equals(this.getOwnerId())) {
             return ActionResultType.PASS;
