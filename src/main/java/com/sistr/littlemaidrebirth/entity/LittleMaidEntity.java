@@ -58,6 +58,7 @@ import net.sistr.lmml.resource.manager.LMModelManager;
 import net.sistr.lmml.resource.manager.LMTextureManager;
 import net.sistr.lmml.resource.util.LMSounds;
 import net.sistr.lmml.resource.util.TextureColors;
+import sun.security.krb5.internal.PAData;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -540,8 +541,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         if (player.isSecondaryUseActive()) {
             return false;
         }
-        if (!hasTameOwner() && stack.getItem() == Items.CAKE) {
-            return contract(player, stack, false);
+        if (!hasTameOwner()) {
+            if (stack.getItem() == Items.CAKE) {
+                return contract(player, stack, false);
+            }
+            return false;
         }
         if (!player.getUniqueID().equals(this.getOwnerId())) {
             return false;
