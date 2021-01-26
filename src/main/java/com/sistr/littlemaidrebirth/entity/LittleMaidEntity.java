@@ -7,16 +7,12 @@ import com.sistr.littlemaidrebirth.entity.goal.*;
 import com.sistr.littlemaidrebirth.entity.iff.*;
 import com.sistr.littlemaidrebirth.entity.mode.*;
 import com.sistr.littlemaidrebirth.item.IFFCopyBookItem;
-import com.sistr.littlemaidrebirth.setup.Registration;
 import com.sistr.littlemaidrebirth.tags.LMTags;
 import com.sistr.littlemaidrebirth.util.LivingAccessor;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.attributes.AttributeModifierMap;
 import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.ai.goal.*;
-import net.minecraft.entity.monster.CreeperEntity;
-import net.minecraft.entity.monster.EndermanEntity;
-import net.minecraft.entity.monster.IMob;
 import net.minecraft.entity.passive.TameableEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -24,7 +20,6 @@ import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.entity.projectile.SnowballEntity;
 import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.container.SimpleNamedContainerProvider;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -68,7 +63,10 @@ import net.sistr.lmml.resource.util.TextureColors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 //メイドさん本体
@@ -102,7 +100,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     public LittleMaidEntity(EntityType<LittleMaidEntity> type, World worldIn) {
         super(type, worldIn);
         this.moveController = new FixedMoveControl(this);
-        ((GroundPathNavigator)getNavigator()).setBreakDoors(true);
+        ((GroundPathNavigator) getNavigator()).setBreakDoors(true);
         multiModel = new MultiModelCompound(this,
                 LMTextureManager.INSTANCE.getTexture("Default")
                         .orElseThrow(() -> new IllegalStateException("デフォルトテクスチャが存在しません。")),
@@ -464,7 +462,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
     //todo 以下数メソッドにはもうちと整理が必要か
 
-    //trueでアイテムが使用された、falseでされなかった
+    //trueでアイテムが使用された、falseでされなかった(1.16からはSUCCESS(true)とPASS(false))
     //trueならItemStack.interactWithEntity()が起こらず、またアイテム使用が必ずキャンセルされる
     //継承元のコードは無視
     @Override
@@ -473,39 +471,32 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         if (player.isSecondaryUseActive() || stack.getItem() instanceof IFFCopyBookItem) {
             return ActionResultType.PASS;
         }
-        //ストライキ中、ケーキじゃないなら不満気にしてリターン
-        //クライアント側にはストライキかどうかは判定できない
-        if (isStrike() && LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
-            if (world instanceof ServerWorld)
+        if (!hasTameOwner() && LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
+            return contract(player, stack, false);
+        }
+        if (!player.getUniqueID().equals(this.getOwnerId())) {
+            return ActionResultType.PASS;
+        }
+        if (isStrike()) {
+            if (LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
+                return contract(player, stack, true);
+            } else if (world instanceof ServerWorld) {
                 ((ServerWorld) world).spawnParticle(ParticleTypes.SMOKE,
                         this.getPosX() + (0.5F - rand.nextFloat()) * 0.2F,
                         this.getPosYEye() + (0.5F - rand.nextFloat()) * 0.2F,
                         this.getPosZ() + (0.5F - rand.nextFloat()) * 0.2F,
                         5,
                         0, 1, 0, 0.1);
+            }
             return ActionResultType.PASS;
         }
-        if (hasTameOwner()) {
-            if (isStrike()) {
-                if (LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
-                    return contract(player, stack, true);
-                }
-                return ActionResultType.PASS;
-            }
-            if (LMTags.Items.MAIDS_SALARY.contains(stack.getItem())) {
-                return changeState(player, stack);
-            }
-        } else {
-            if (LMTags.Items.MAIDS_EMPLOYABLE.contains(stack.getItem())) {
-                return contract(player, stack, false);
-            }
+        if (LMTags.Items.MAIDS_SALARY.contains(stack.getItem())) {
+            return changeState(player, stack);
         }
-        if (player.getUniqueID().equals(this.getOwnerId())) {
-            if (!player.world.isRemote)
-                openContainer(player);
-            return ActionResultType.func_233537_a_(world.isRemote);
+        if (!player.world.isRemote) {
+            openContainer(player);
         }
-        return ActionResultType.PASS;
+        return ActionResultType.func_233537_a_(world.isRemote);
     }
 
     public ActionResultType changeState(PlayerEntity player, ItemStack stack) {
@@ -554,7 +545,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         if (isReContract) {
             setStrike(false);
         }
-        while (receiveSalary(1));//ここに給料処理が混じってるのがちょっとムカつく
+        while (receiveSalary(1)) ;//ここに給料処理が混じってるのがちょっとムカつく
         getNavigator().clearPath();
         this.setOwnerId(player.getUniqueID());
         setMovingState(Tameable.ESCORT);
@@ -658,7 +649,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     @Override
     protected void damageArmor(DamageSource damageSource, float damage) {
         super.damageArmor(damageSource, damage);
-        ((PlayerInventory)getInventory()).func_234563_a_(damageSource, damage);
+        ((PlayerInventory) getInventory()).func_234563_a_(damageSource, damage);
     }
 
     //テイム関連
