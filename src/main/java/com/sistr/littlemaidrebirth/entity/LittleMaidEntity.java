@@ -540,37 +540,30 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         if (player.isSecondaryUseActive()) {
             return false;
         }
-        //ストライキ中、ケーキじゃないなら不満気にしてリターン
-        //クライアント側にはストライキかどうかは判定できない
-        if (isStrike() && stack.getItem() != Items.CAKE) {
-            if (world instanceof ServerWorld)
+        if (!hasTameOwner() && stack.getItem() == Items.CAKE) {
+            return contract(player, stack, false);
+        }
+        if (!player.getUniqueID().equals(this.getOwnerId())) {
+            return false;
+        }
+        if (isStrike()) {
+            if (stack.getItem() == Items.CAKE) {
+                return contract(player, stack, true);
+            } else if (world instanceof ServerWorld) {
                 ((ServerWorld) world).spawnParticle(ParticleTypes.SMOKE,
                         this.getPosX() + (0.5F - rand.nextFloat()) * 0.2F,
                         this.getPosYEye() + (0.5F - rand.nextFloat()) * 0.2F,
                         this.getPosZ() + (0.5F - rand.nextFloat()) * 0.2F,
                         5,
                         0, 1, 0, 0.1);
+            }
             return false;
         }
-        if (hasTameOwner()) {
-            if (isStrike()) {
-                if (stack.getItem() == Items.CAKE) {
-                    return contract(player, stack, true);
-                }
-                return false;
-            }
-            if (stack.getItem() == Items.SUGAR) {
-                return changeState(player, stack);
-            }
-        } else {
-            if (stack.getItem() == Items.CAKE) {
-                return contract(player, stack, false);
-            }
+        if (stack.getItem() == Items.SUGAR) {
+            return changeState(player, stack);
         }
-        if (player.getUniqueID().equals(this.getOwnerId())) {
-            if (!player.world.isRemote)
-                openContainer(player);
-            return true;
+        if (!player.world.isRemote) {
+            openContainer(player);
         }
         return false;
     }
