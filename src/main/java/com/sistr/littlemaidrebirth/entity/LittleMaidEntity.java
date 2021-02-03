@@ -634,11 +634,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
     @Override
     public Iterable<ItemStack> getArmorInventoryList() {
-        return () -> Lists.newArrayList(
+        return Lists.newArrayList(
                 getItemStackFromSlot(EquipmentSlotType.FEET),
                 getItemStackFromSlot(EquipmentSlotType.LEGS),
                 getItemStackFromSlot(EquipmentSlotType.CHEST),
-                getItemStackFromSlot(EquipmentSlotType.HEAD)).iterator();
+                getItemStackFromSlot(EquipmentSlotType.HEAD));
     }
 
     @Override
