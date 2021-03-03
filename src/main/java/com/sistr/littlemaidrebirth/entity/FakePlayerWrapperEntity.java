@@ -26,15 +26,17 @@ import net.minecraftforge.common.util.FakePlayer;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 //エンティティをプレイヤーにラップするクラス
 //基本的にサーバーオンリー
 //アイテムの使用/アイテム回収/その他
 public abstract class FakePlayerWrapperEntity extends FakePlayer {
+    private static final GameProfile profile = new GameProfile(UUID.fromString("8eabd891-5b4a-44f5-8ea4-89b04100baf6"),
+            "fake_player_name");
 
     public FakePlayerWrapperEntity(LivingEntity origin) {
-        super((ServerWorld) origin.world, new GameProfile(origin.getUniqueID(),
-                origin.getType().getName().getString() + "_player_wrapper"));
+        super((ServerWorld) origin.world, profile);
         setEntityId(origin.getEntityId());
         connection = new FakePlayNetHandler(getServer(), this);
     }
