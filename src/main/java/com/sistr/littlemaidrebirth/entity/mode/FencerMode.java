@@ -3,13 +3,11 @@ package com.sistr.littlemaidrebirth.entity.mode;
 import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import com.sistr.littlemaidrebirth.util.MeleeAttackAccessor;
 import net.minecraft.entity.CreatureEntity;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.item.AxeItem;
 import net.minecraft.item.SwordItem;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Hand;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.common.util.FakePlayer;
@@ -18,43 +16,41 @@ import net.sistr.lmml.resource.util.LMSounds;
 
 //基本的にはMeleeAttackGoalのラッパー
 //ただしFakePlayerに殴らせるようにしている
-public class FencerMode implements Mode {
-    protected final CreatureEntity mob;
-    protected final FakePlayerSupplier hasFakePlayer;
+public class FencerMode<T extends CreatureEntity & FakePlayerSupplier> implements Mode {
+    protected final T mob;
     protected final MeleeAttackGoal melee;
 
-    public FencerMode(CreatureEntity mob, FakePlayerSupplier hasFakePlayer, double speed, boolean memory) {
+    public FencerMode(T mob, double speed, boolean memory) {
         this.mob = mob;
-        this.hasFakePlayer = hasFakePlayer;
         this.melee = new MeleeAttackGoal(mob, speed, memory) {
             @Override
-            protected void checkAndPerformAttack(LivingEntity target, double squaredDistance) {
+            protected void checkAndPerformAttack(net.minecraft.entity.LivingEntity target, double squaredDistance) {
                 double reachSq = this.getAttackReachSqr(target);
-                if (reachSq < squaredDistance || 0 < func_234041_j_() || !attacker.canEntityBeSeen(target)) {
+                if (reachSq < squaredDistance || 0 < func_234041_j_() || !this.attacker.canEntityBeSeen(target)) {
                     return;
                 }
                 this.attacker.getNavigator().clearPath();
 
-                this.attacker.swingArm(Hand.MAIN_HAND);
+                this.attacker.swingArm(net.minecraft.util.Hand.MAIN_HAND);
                 if (this.attacker instanceof SoundPlayable) {
-                    ((SoundPlayable)attacker).play(LMSounds.ATTACK);
+                    ((SoundPlayable) mob).play(LMSounds.ATTACK);
                 }
 
-                FakePlayer fake = hasFakePlayer.getFakePlayer();
+                FakePlayer fake = FencerMode.this.mob.getFakePlayer();
                 fake.attackTargetEntityWithCurrentItem(target);
                 if (target instanceof MobEntity && ((MobEntity) target).getAttackTarget() == fake) {
-                    ((MobEntity) target).setAttackTarget(attacker);
+                    ((MobEntity) target).setAttackTarget(mob);
                 }
                 if (target.getRevengeTarget() == fake) {
-                    target.setRevengeTarget(attacker);
+                    target.setRevengeTarget(mob);
                 }
-                ((MeleeAttackAccessor)melee).setCool_LM(MathHelper.ceil(fake.getCooldownPeriod() + 0.5F) + 5);
+                ((MeleeAttackAccessor) melee).setCool_LM(
+                        MathHelper.ceil(fake.getCooldownPeriod() + 0.5F) + 5);
             }
 
             @Override
-            protected double getAttackReachSqr(LivingEntity attackTarget) {
-                double reach = hasFakePlayer.getFakePlayer()
-                        .getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue() - 0.5D - 1D;
+            protected double getAttackReachSqr(net.minecraft.entity.LivingEntity entity) {
+                double reach = mob.getFakePlayer().getAttributeValue(ForgeMod.REACH_DISTANCE.get());
                 reach = Math.max(reach, 0);
                 return reach * reach;
             }

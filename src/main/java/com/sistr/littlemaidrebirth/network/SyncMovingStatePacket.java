@@ -12,42 +12,21 @@ import java.util.function.Supplier;
 
 public class SyncMovingStatePacket {
     private final int entityId;
-    private final String state;
+    private final Tameable.MovingState state;
 
     public SyncMovingStatePacket(PacketBuffer buf) {
         this.entityId = buf.readVarInt();
-        int num = buf.readByte();
-        switch (num) {
-            case 1:
-                state = Tameable.ESCORT;
-                break;
-            case 2:
-                state = Tameable.WAIT;
-                break;
-            default:
-                state = Tameable.FREEDOM;
-                break;
-        }
+        this.state = buf.readEnumValue(Tameable.MovingState.class);
     }
 
-    public SyncMovingStatePacket(Entity entity, String state) {
+    public SyncMovingStatePacket(Entity entity, Tameable.MovingState state) {
         this.entityId = entity.getEntityId();
         this.state = state;
     }
 
     public void toBytes(PacketBuffer buf) {
         buf.writeVarInt(entityId);
-        switch (state) {
-            case Tameable.ESCORT:
-                buf.writeByte(1);
-                break;
-            case Tameable.WAIT:
-                buf.writeByte(2);
-                break;
-            default:
-                buf.writeByte(0);
-                break;
-        }
+        buf.writeEnumValue(state);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
@@ -60,11 +39,11 @@ public class SyncMovingStatePacket {
     }
 
     @OnlyIn(Dist.CLIENT)
-    public static void sendC2SPacket(Entity entity, String state) {
+    public static void sendC2SPacket(Entity entity, Tameable.MovingState state) {
         Networking.INSTANCE.sendToServer(new SyncMovingStatePacket(entity, state));
     }
 
-    public static void applyMovingStateServer(PlayerEntity player, int entityId, String state) {
+    public static void applyMovingStateServer(PlayerEntity player, int entityId, Tameable.MovingState state) {
         Entity entity = player.world.getEntityByID(entityId);
         if (!(entity instanceof Tameable)
                 || !((Tameable) entity).getTameOwnerUuid()
@@ -73,6 +52,9 @@ public class SyncMovingStatePacket {
             return;
         }
         ((Tameable) entity).setMovingState(state);
+        if (state == Tameable.MovingState.FREEDOM) {
+            ((Tameable) entity).setFreedomPos(entity.getPosition());
+        }
     }
 
 }

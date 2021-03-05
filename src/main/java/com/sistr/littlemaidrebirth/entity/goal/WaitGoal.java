@@ -6,6 +6,8 @@ import net.minecraft.entity.ai.goal.Goal;
 
 import java.util.EnumSet;
 
+import static com.sistr.littlemaidrebirth.entity.Tameable.MovingState.WAIT;
+
 public class WaitGoal extends Goal {
     private final CreatureEntity owner;
     private final Tameable tameable;
@@ -18,12 +20,11 @@ public class WaitGoal extends Goal {
 
     @Override
     public boolean shouldExecute() {
-        return tameable.getMovingState().equals(Tameable.WAIT);
+        return tameable.getMovingState() == WAIT;
     }
 
     @Override
     public void startExecuting() {
-        super.startExecuting();
         this.owner.getNavigator().clearPath();
     }
 

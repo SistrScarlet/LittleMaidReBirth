@@ -17,6 +17,7 @@ import net.minecraft.item.Items;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.MobSpawnInfo;
 import net.minecraft.world.gen.Heightmap;
+import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.world.BiomeLoadingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -36,8 +37,8 @@ public class ModSetup {
     public static void init(final FMLCommonSetupEvent event) {
         Networking.registerMessages();
 
-        GlobalEntityTypeAttributes.put(Registration.LITTLE_MAID_MOB.get(),
-                LittleMaidEntity.registerAttributes().create());
+        event.enqueueWork(() -> GlobalEntityTypeAttributes.put(Registration.LITTLE_MAID_MOB.get(),
+                LittleMaidEntity.registerAttributes().create()));
         EntitySpawnPlacementRegistry.register(
                 Registration.LITTLE_MAID_MOB.get(), EntitySpawnPlacementRegistry.PlacementType.ON_GROUND,
                 Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, (littleMaid, worldIn, reason, pos, random) -> LittleMaidEntity.canLittleMaidSpawn(worldIn, pos));
@@ -48,13 +49,19 @@ public class ModSetup {
                         new IFFType(IFFTag.UNKNOWN, entityType)));
     }
 
+    //36.0.42以降なので一旦古いやり方で通す
+    /*@SubscribeEvent
+    public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
+        event.put(Registration.LITTLE_MAID_MOB.get(), LittleMaidEntity.registerAttributes().create());
+    }*/
+
     @SubscribeEvent
     public static void onBiomeLoading(final BiomeLoadingEvent event) {
         if (!Config.CAN_SPAWN_LM.get()) {
             return;
         }
         Biome.Category category = event.getCategory();
-        if (!event.getName().getNamespace().equals("minecraft")) {
+        if (event.getName() == null || !event.getName().getNamespace().equals("minecraft")) {
             return;
         }
         if (category == Biome.Category.NONE || category == Biome.Category.THEEND || category == Biome.Category.NETHER) {

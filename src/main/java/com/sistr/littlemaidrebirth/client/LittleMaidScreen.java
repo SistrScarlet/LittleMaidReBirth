@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.sistr.littlemaidrebirth.LittleMaidReBirthMod;
 import com.sistr.littlemaidrebirth.entity.LittleMaidContainer;
 import com.sistr.littlemaidrebirth.entity.LittleMaidEntity;
+import com.sistr.littlemaidrebirth.entity.Tameable;
 import com.sistr.littlemaidrebirth.network.OpenIFFScreenPacket;
 import com.sistr.littlemaidrebirth.network.SyncMovingStatePacket;
 import com.sistr.littlemaidrebirth.network.SyncSoundConfigPacket;
@@ -90,7 +91,9 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
         });
         this.addButton(new Button(left - size, top + size * ++layer, size, size, new StringTextComponent(""),
                 button -> {
-                    openAt.changeMovingState();
+                    openAt.setMovingState(openAt.getMovingState() == Tameable.MovingState.FREEDOM
+                            ? Tameable.MovingState.WAIT
+                            : Tameable.MovingState.FREEDOM);
                     stateText = getStateText();
                 }) {
             @Override
@@ -103,7 +106,7 @@ public class LittleMaidScreen extends ContainerScreen<LittleMaidContainer> {
     }
 
     public ITextComponent getStateText() {
-        TextComponent stateText = new TranslationTextComponent("state." + LittleMaidReBirthMod.MODID + "." + openAt.getMovingState());
+        TextComponent stateText = new TranslationTextComponent("state." + LittleMaidReBirthMod.MODID + "." + openAt.getMovingState().getName());
         openAt.getModeName().ifPresent(
                 modeName -> stateText.appendString(" : ")
                         .append(new TranslationTextComponent("mode." + LittleMaidReBirthMod.MODID + "." + modeName)));

@@ -83,6 +83,11 @@ public abstract class FakePlayerWrapperEntity extends FakePlayer {
     }
 
     @Override
+    public void onItemPickup(Entity entityIn, int quantity) {
+        getOrigin().onItemPickup(entityIn, quantity);
+    }
+
+    @Override
     public PlayerAdvancements getAdvancements() {
         return getOriginAdvancementTracker().orElse(super.getAdvancements());
     }
@@ -90,6 +95,27 @@ public abstract class FakePlayerWrapperEntity extends FakePlayer {
     @Override
     public EntitySize getSize(Pose poseIn) {
         return getOrigin().getSize(poseIn);
+    }
+
+    //id系
+
+    @Override
+    public int getEntityId() {
+        int id = getOrigin().getEntityId();
+        if (super.getEntityId() != id) setEntityId(id);
+        return id;
+    }
+
+    @Override
+    public UUID getUniqueID() {
+        UUID uuid = getOrigin().getUniqueID();
+        if (super.getUniqueID() != uuid) setUniqueId(uuid);
+        return uuid;
+    }
+
+    @Override
+    public String getCachedUniqueIdString() {
+        return getOrigin().getCachedUniqueIdString();
     }
 
     //座標系

@@ -1,19 +1,17 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.google.common.collect.Lists;
-import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ShearsItem;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.IForgeShearable;
 
 import java.util.Collection;
@@ -24,15 +22,14 @@ import java.util.stream.Collectors;
 
 public class RipperMode implements Mode {
     protected final CreatureEntity mob;
-    protected final FakePlayerSupplier fakePlayer;
     protected final int radius;
     protected final List<Entity> shearable = Lists.newArrayList();
     protected int timeToRecalcPath;
     protected int timeToIgnore;
 
-    public RipperMode(CreatureEntity mob, FakePlayerSupplier fakePlayer, int radius) {
+
+    public RipperMode(CreatureEntity mob, int radius) {
         this.mob = mob;
-        this.fakePlayer = fakePlayer;
         this.radius = radius;
     }
 
@@ -57,7 +54,7 @@ public class RipperMode implements Mode {
                 this.mob.getPosZ() - radius);
         return this.mob.world.getEntitiesInAABBexcluding(this.mob, bb, (entity) ->
                 entity instanceof LivingEntity && entity instanceof IForgeShearable
-                        && ((IForgeShearable) entity).isShearable(this.mob.getHeldItemMainhand(), this.mob.world, entity.getPosition())
+                        && ((IForgeShearable) entity).isShearable(mob.getHeldItemMainhand(), entity.world, entity.getPosition())
                         && this.mob.getEntitySenses().canSee(entity));
     }
 
@@ -90,7 +87,20 @@ public class RipperMode implements Mode {
             return;
         }
         if (target.getDistanceSq(this.mob) < 2 * 2) {
-            shearing(target);
+            ItemStack stack = this.mob.getHeldItemMainhand();
+            if (((IForgeShearable) target).isShearable(stack, target.world, target.getPosition())) {
+                List<ItemStack> drops = ((IForgeShearable) target).onSheared(null, stack, target.world, target.getPosition(),
+                        EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, stack));
+                Random rand = new Random();
+                drops.forEach(d -> {
+                    ItemEntity ent = target.entityDropItem(d, 1.0F);
+                    ent.setMotion(ent.getMotion().add(
+                            (rand.nextFloat() - rand.nextFloat()) * 0.1F,
+                            rand.nextFloat() * 0.05F,
+                            (rand.nextFloat() - rand.nextFloat()) * 0.1F));
+                });
+                stack.damageItem(1, (LivingEntity) target, e -> e.sendBreakAnimation(Hand.MAIN_HAND));
+            }
             this.shearable.remove(0);
             this.timeToIgnore = 0;
             return;
@@ -98,27 +108,6 @@ public class RipperMode implements Mode {
         if (--this.timeToRecalcPath <= 0) {
             this.timeToRecalcPath = 10;
             this.mob.getNavigator().tryMoveToXYZ(target.getPosX(), target.getPosY(), target.getPosZ(), 1);
-        }
-    }
-    
-    public void shearing(Entity target) {
-        ItemStack stack = this.mob.getHeldItemMainhand();
-        BlockPos pos = new BlockPos(target.getPosX(), target.getPosY(), target.getPosZ());
-        if (((IForgeShearable) target).isShearable(stack, target.world, pos)) {
-            List<ItemStack> drops = ((IForgeShearable) target).onSheared(
-                    fakePlayer.getFakePlayer(), stack, target.world, pos,
-                    EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, stack));
-            Random rand = new java.util.Random();
-            drops.forEach(drop -> {
-                ItemEntity ent = target.entityDropItem(drop, 1.0F);
-                assert ent != null;
-                ent.setMotion(ent.getMotion().add(
-                        (rand.nextFloat() - rand.nextFloat()) * 0.1F,
-                        rand.nextFloat() * 0.05F,
-                        (rand.nextFloat() - rand.nextFloat()) * 0.1F));
-            });
-            stack.damageItem(1, (LivingEntity) target,
-                    entity -> entity.sendBreakAnimation(EquipmentSlotType.MAINHAND));
         }
     }
 

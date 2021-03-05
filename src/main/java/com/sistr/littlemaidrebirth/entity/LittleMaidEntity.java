@@ -7,6 +7,7 @@ import com.sistr.littlemaidrebirth.entity.goal.*;
 import com.sistr.littlemaidrebirth.entity.iff.*;
 import com.sistr.littlemaidrebirth.entity.mode.*;
 import com.sistr.littlemaidrebirth.item.IFFCopyBookItem;
+import com.sistr.littlemaidrebirth.setup.Registration;
 import com.sistr.littlemaidrebirth.tags.LMTags;
 import com.sistr.littlemaidrebirth.util.LivingAccessor;
 import net.minecraft.entity.*;
@@ -69,6 +70,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static com.sistr.littlemaidrebirth.entity.Tameable.MovingState.ESCORT;
+import static com.sistr.littlemaidrebirth.entity.Tameable.MovingState.WAIT;
+
 //メイドさん本体
 //継承しないのが吉
 //todo 啼くように、このクラスの行数を500まで減らす
@@ -113,6 +117,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 .map(IFFType::createIFF).collect(Collectors.toList()));
     }
 
+    //基本使わない
+    public LittleMaidEntity(World world) {
+        this(Registration.LITTLE_MAID_MOB.get(), world);
+    }
+
     //スタティックなメソッド
 
     public static AttributeModifierMap.MutableAttribute registerAttributes() {
@@ -133,39 +142,41 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     //登録メソッドたち
 
     public void addDefaultModes(LittleMaidEntity maid) {
-        maid.addMode(new FencerMode(maid, maid, 1D, true));
-        maid.addMode(new ArcherMode(maid, maid, maid,
-                0.1F, 10, 24));
-        maid.addMode(new CookingMode(maid, maid));
-        maid.addMode(new RipperMode(maid, maid, 8));
-        maid.addMode(new TorcherMode(maid, maid, maid, 8));
+        maid.addMode(new FencerMode<>(maid, 1D, true));
+        maid.addMode(new ArcherMode<>(maid, 15F,
+                entity -> entity instanceof LivingEntity && isFriend((LivingEntity) entity)));
+        maid.addMode(new CookingMode<>(maid, 1, 1 + 18));
+        maid.addMode(new RipperMode(maid, 8));
+        maid.addMode(new TorcherMode<>(maid, 8));
+        maid.addMode(new HealerMode<>(maid, 0, 1 + 18));
     }
 
     @Override
     protected void registerGoals() {
+        super.registerGoals();
         this.goalSelector.addGoal(0, new SwimGoal(this));
         this.goalSelector.addGoal(1, new OpenDoorGoal(this, true));
-        this.goalSelector.addGoal(5, new HealMyselfGoal(this, this,
+        this.goalSelector.addGoal(5, new HealMyselfGoal<>(this,
                 Sets.newHashSet(LMTags.Items.MAIDS_SALARY.getAllElements()), 2, 1));
         this.goalSelector.addGoal(10, new WaitGoal(this, this));
         //todo 挙動が怪しい
-        /*this.goalSelector.addGoal(12, new WaitWhenOpenGUIGoal<>(this, this,
-                LittleMaidContainer.class));*/
-        this.goalSelector.addGoal(13, new EscortGoal(this, this,
-                16F, 20F, 24F, 1.5D));
+        /*this.goalSelector.addGoal();(12, new WaitWhenOpenGUIGoal<>(this, this,
+                LittleMaidScreenHandler.class));*/
+        this.goalSelector.addGoal(13, new EscortGoal<>(this, 1.5D,
+                8F, 16F, 24F, true));
         this.goalSelector.addGoal(15, new ModeWrapperGoal(this));
         this.goalSelector.addGoal(16, new FollowAtHeldItemGoal(this, this, true,
                 Sets.newHashSet(LMTags.Items.MAIDS_SALARY.getAllElements())));
-        this.goalSelector.addGoal(17, new LMStareAtHeldItemGoal(this, this, false,
-                Sets.newHashSet(LMTags.Items.MAIDS_EMPLOYABLE.getAllElements())));
+        this.goalSelector.addGoal(17, new LMStareAtHeldItemGoal(this, this, false
+                , Sets.newHashSet(LMTags.Items.MAIDS_EMPLOYABLE.getAllElements())));
         this.goalSelector.addGoal(17, new LMStareAtHeldItemGoal(this, this, true,
                 Sets.newHashSet(LMTags.Items.MAIDS_SALARY.getAllElements())));
         this.goalSelector.addGoal(18, new LMMoveToDropItemGoal(this, 8, 1D));
-        this.goalSelector.addGoal(19, new EscortGoal(this, this,
-                6F, 8F, 12F, 1.5D));
-        this.goalSelector.addGoal(20, new EscortGoal(this, this,
-                4F, 6F, 12F, 1.0D));
-        this.goalSelector.addGoal(20, new FreedomGoal(this, this, 0.8D, 16D));
+        this.goalSelector.addGoal(19, new EscortGoal<>(this, 1.5D,
+                6F, 8F, 12F, true));
+        this.goalSelector.addGoal(20, new EscortGoal<>(this, 1.0D,
+                4F, 5F, 12F, true));
+        this.goalSelector.addGoal(20, new FreedomGoal<>(this, 0.8D, 16D));
         this.goalSelector.addGoal(30, new LookAtGoal(this, PlayerEntity.class, 8.0F));
         this.goalSelector.addGoal(30, new LookRandomlyGoal(this));
 
@@ -173,14 +184,14 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         this.targetSelector.addGoal(4, new OwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(5, new OwnerHurtTargetGoal(this));
         this.targetSelector.addGoal(6, new NearestAttackableTargetGoal<>(
-                this, MobEntity.class, 10, true, false,
-                entity -> identify(entity) == IFFTag.ENEMY));
+                this, LivingEntity.class, 5, true, false,
+                this::isEnemy));
     }
 
     @Override
     protected void registerData() {
         super.registerData();
-        this.dataManager.register(MOVING_STATE, (byte) 0);
+        this.dataManager.register(MOVING_STATE, (byte) 2);
         this.dataManager.register(AIMING, false);
         this.dataManager.register(BEGGING, false);
         this.dataManager.register(MODE_NAME, "");
@@ -194,7 +205,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
         writeInventory(tag);
 
-        tag.putString("MovingState", getMovingState());
+        tag.putInt("MovingState", getMovingState().getId());
 
         if (freedomPos != null)
             tag.put("FreedomPos", NBTUtil.writeBlockPos(freedomPos));
@@ -224,12 +235,10 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         super.readAdditional(tag);
         readInventory(tag);
 
-        if (tag.contains("MovingState"))
-            setMovingState(tag.getString("MovingState"));
+        setMovingState(MovingState.fromId(tag.getInt("MovingState")));
 
-        if (tag.contains("FreedomPos")) {
+        if (tag.contains("FreedomPos"))
             freedomPos = NBTUtil.readBlockPos(tag.getCompound("FreedomPos"));
-        }
 
         needSalary.readSalary(tag);
 
@@ -257,10 +266,9 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             }
         }
 
-        if (tag.contains("SoundConfigName")) {
+        if (tag.contains("SoundConfigName"))
             LMConfigManager.INSTANCE.getConfig(tag.getString("SoundConfigName"))
                     .ifPresent(this::setConfigHolder);
-        }
 
         readIFF(tag);
     }
@@ -268,6 +276,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     //鯖
     @Override
     public void writeSpawnData(PacketBuffer buf) {
+        //モデル
         buf.writeEnumValue(getColor());
         buf.writeBoolean(isContract());
         buf.writeString(getTextureHolder(Layer.SKIN, Part.HEAD).getTextureName());
@@ -275,11 +284,13 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             buf.writeString(getTextureHolder(Layer.INNER, part).getTextureName());
             buf.writeString(getTextureHolder(Layer.OUTER, part).getTextureName());
         }
+        //サウンド
         buf.writeString(getConfigHolder().getName());
     }
 
     @Override
     public void readSpawnData(PacketBuffer buf) {
+        //モデル
         //readString()はクラ処理。このメソッドはクラ側なので問題なし
         setColor(buf.readEnumValue(TextureColors.class));
         setContract(buf.readBoolean());
@@ -292,6 +303,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
             textureManager.getTexture(buf.readString())
                     .ifPresent(textureHolder -> setTextureHolder(textureHolder, Layer.OUTER, part));
         }
+        //サウンド
         LMConfigManager.INSTANCE.getConfig(buf.readString())
                 .ifPresent(this::setConfigHolder);
     }
@@ -388,6 +400,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         if (0.2F < rand.nextFloat()) {
             return;
         }
+        //todo ここ拡張可能にする
         if (getHealth() / getMaxHealth() < 0.3F) {
             play(LMSounds.LIVING_WHINE);
         } else if (this.getHeldItemMainhand().getItem() == Items.CLOCK) {
@@ -519,18 +532,11 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     }
 
     public void changeMovingState() {
-        String state = this.getMovingState();
-        switch (state) {
-            case Tameable.WAIT:
-                setMovingState(Tameable.ESCORT);
-                break;
-            case Tameable.ESCORT:
-                setMovingState(Tameable.FREEDOM);
-                this.freedomPos = getPosition();
-                break;
-            default:
-                setMovingState(Tameable.WAIT);
-                break;
+        MovingState state = this.getMovingState();
+        if (state == WAIT) {
+            setMovingState(ESCORT);
+        } else {
+            setMovingState(WAIT);
         }
     }
 
@@ -551,7 +557,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         while (receiveSalary(1)) ;//ここに給料処理が混じってるのがちょっとムカつく
         getNavigator().clearPath();
         this.setOwnerId(player.getUniqueID());
-        setMovingState(Tameable.ESCORT);
+        setMovingState(ESCORT);
         setContract(true);
         if (!player.abilities.isCreativeMode) {
             stack.shrink(1);
@@ -678,44 +684,46 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     }
 
     @Override
-    public String getMovingState() {
+    public MovingState getMovingState() {
         int num = this.dataManager.get(MOVING_STATE);
-        if (num <= 0) {
-            return FREEDOM;
-        } else if (num == 1) {
-            return ESCORT;
-        }
-        return WAIT;
+        return MovingState.fromId(num);
     }
 
-    public void setMovingState(String movingState) {
-        int num;
-        switch (movingState) {
-            case ESCORT:
-                num = 1;
-                break;
-            case WAIT:
-                num = 2;
-                break;
-            default:
-                num = 0;
-                break;
-        }
+    @Override
+    public void setMovingState(MovingState movingState) {
+        int num = movingState.getId();
         this.dataManager.set(MOVING_STATE, (byte) num);
     }
 
     @Override
-    public Optional<BlockPos> getFollowPos() {
-        String state = getMovingState();
-        switch (state) {
-            case WAIT:
-                return Optional.of(this.getPosition());
-            case ESCORT:
-                return getTameOwner().map(Entity::getPosition);
-            case FREEDOM:
-                return Optional.of(freedomPos == null ? getPosition() : freedomPos);
-        }
-        return Optional.empty();
+    public void setFreedomPos(BlockPos freedomPos) {
+        this.freedomPos = freedomPos;
+    }
+
+    @Override
+    public BlockPos getFreedomPos() {
+        if (freedomPos == null) freedomPos = getPosition();
+        return freedomPos;
+    }
+
+    @Override
+    public void setSleeping(boolean p_233686_1_) {
+
+    }
+
+    @Override
+    public boolean isEntitySleeping() {
+        return false;
+    }
+
+    @Override
+    public void func_233687_w_(boolean sitting) {
+        setMovingState(sitting ? WAIT : ESCORT);
+    }
+
+    @Override
+    public boolean isSitting() {
+        return getMovingState() == WAIT;
     }
 
     @Override
@@ -758,7 +766,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     public boolean consumeSalary(int num) {
         boolean result = needSalary.consumeSalary(num);
         if (result) {
-            this.playSound(SoundEvents.ENTITY_ITEM_PICKUP, 1.0F, this.getRNG().nextFloat() * 0.1F + 1.0F);
+            this.playSound(SoundEvents.ENTITY_ITEM_PICKUP,
+                    1.0F, this.getRNG().nextFloat() * 0.1F + 1.0F);
             this.swingArm(Hand.MAIN_HAND);
         }
         return result;
@@ -856,10 +865,16 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
                 return true;
             }
             //同じ主を持つ者はフレンド
-            return entity instanceof Tameable && ownerId.equals(((Tameable) entity).getTameOwnerUuid().orElse(null))
-                    || entity instanceof TameableEntity && ownerId.equals(((TameableEntity) entity).getOwnerId());
+            if (entity instanceof Tameable && ownerId.equals(((Tameable) entity).getTameOwnerUuid().orElse(null))
+                    || entity instanceof TameableEntity && ownerId.equals(((TameableEntity) entity).getOwnerId())) {
+                return true;
+            }
         }
         return identify(entity) == IFFTag.FRIEND;
+    }
+
+    public boolean isEnemy(LivingEntity entity) {
+        return identify(entity) == IFFTag.ENEMY;
     }
 
     //エイム

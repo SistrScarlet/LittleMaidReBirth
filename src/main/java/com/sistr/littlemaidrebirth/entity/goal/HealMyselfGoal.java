@@ -14,18 +14,16 @@ import net.sistr.lmml.resource.util.LMSounds;
 import java.util.EnumSet;
 import java.util.Set;
 
-public class HealMyselfGoal extends Goal {
-    private final CreatureEntity mob;
-    private final InventorySupplier hasInventory;
+public class HealMyselfGoal<T extends CreatureEntity & InventorySupplier> extends Goal {
+    private final T mob;
     private final Set<Item> healItems;
     private final int healInterval;
     private final int healAmount;
     private int cool;
 
-    public HealMyselfGoal(CreatureEntity mob, InventorySupplier hasInventory, Set<Item> healItems,
+    public HealMyselfGoal(T mob, Set<Item> healItems,
                           int healInterval, int healAmount) {
         this.mob = mob;
-        this.hasInventory = hasInventory;
         this.healItems = healItems;
         this.healInterval = healInterval;
         this.healAmount = healAmount;
@@ -34,7 +32,15 @@ public class HealMyselfGoal extends Goal {
 
     @Override
     public boolean shouldExecute() {
-        return mob.getHealth() < mob.getMaxHealth() - 1 && getHealItemSlot() != -1;
+        assert mob.getMaxHealth() != 0;
+        return (mob.hurtTime <= 0 && mob.getHealth() <= mob.getMaxHealth() - 1
+                || mob.getHealth() / mob.getMaxHealth() < 0.75F)
+                && getHealItemSlot() != -1;
+    }
+
+    @Override
+    public boolean shouldContinueExecuting() {
+        return mob.getHealth() < mob.getMaxHealth();
     }
 
     @Override
@@ -50,7 +56,7 @@ public class HealMyselfGoal extends Goal {
             return;
         }
         cool = healInterval;
-        IInventory inventory = hasInventory.getInventory();
+        IInventory inventory = this.mob.getInventory();
         int slot = getHealItemSlot();
         ItemStack healItem = inventory.getStackInSlot(slot);
         if (healItem.isEmpty()) {
@@ -73,7 +79,7 @@ public class HealMyselfGoal extends Goal {
     }
 
     public int getHealItemSlot() {
-        IInventory inventory = hasInventory.getInventory();
+        IInventory inventory = this.mob.getInventory();
         for (int i = 0; i < inventory.getSizeInventory(); i++) {
             ItemStack slotStack = inventory.getStackInSlot(i);
             if (healItems.contains(slotStack.getItem())) {

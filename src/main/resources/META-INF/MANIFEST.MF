@@ -1,1 +1,0 @@
-MixinConnector: com.sistr.littlemaidrebirth.mixin.Connector
