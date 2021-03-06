@@ -235,7 +235,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         super.readAdditional(tag);
         readInventory(tag);
 
-        setMovingState(MovingState.fromId(tag.getInt("MovingState")));
+        if (tag.contains("MovingState"))
+            setMovingState(MovingState.fromId(tag.getInt("MovingState")));
 
         if (tag.contains("FreedomPos"))
             freedomPos = NBTUtil.readBlockPos(tag.getCompound("FreedomPos"));
@@ -244,9 +245,8 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
 
         readModeData(tag);
 
-        if (tag.contains("SkinColor")) {
+        if (tag.contains("SkinColor"))
             setColor(TextureColors.getColor(tag.getByte("SkinColor")));
-        }
         setContract(tag.getBoolean("IsContract"));
         LMTextureManager textureManager = LMTextureManager.INSTANCE;
         if (tag.contains("SkinTexture")) {
