@@ -191,7 +191,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
     @Override
     protected void registerData() {
         super.registerData();
-        this.dataManager.register(MOVING_STATE, (byte) 2);
+        this.dataManager.register(MOVING_STATE, (byte) 0);
         this.dataManager.register(AIMING, false);
         this.dataManager.register(BEGGING, false);
         this.dataManager.register(MODE_NAME, "");
@@ -235,8 +235,12 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         super.readAdditional(tag);
         readInventory(tag);
 
-        if (tag.contains("MovingState"))
-            setMovingState(MovingState.fromId(tag.getInt("MovingState")));
+        setMovingState(MovingState.fromId(tag.getInt("MovingState")));
+        //後で消す
+        String old = tag.getString("MovingState");
+        if (!old.isEmpty()) {
+            setMovingState(MovingState.fromName(old));
+        }
 
         if (tag.contains("FreedomPos"))
             freedomPos = NBTUtil.readBlockPos(tag.getCompound("FreedomPos"));
