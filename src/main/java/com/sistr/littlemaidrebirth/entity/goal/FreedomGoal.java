@@ -28,9 +28,6 @@ public class FreedomGoal<T extends CreatureEntity & Tameable> extends WaterAvoid
 
     @Override
     public boolean shouldExecute() {
-        if (!tameable.getTameOwnerUuid().isPresent()) {
-            return false;
-        }
         if (tameable.getMovingState() != Tameable.MovingState.FREEDOM) {
             return false;
         }
