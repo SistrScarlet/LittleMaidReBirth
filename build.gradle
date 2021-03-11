@@ -2,6 +2,7 @@ buildscript {
     repositories {
         maven { url = 'https://files.minecraftforge.net/maven' }
         maven { url = 'https://dist.creeper.host/Sponge/maven' }
+        maven { url = 'https://repo.spongepowered.org/repository/maven-public' }
         jcenter()
         mavenCentral()
     }
@@ -16,13 +17,8 @@ apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-//実環境だとこれか下のが無いとクラッシュする
 mixin {
     add sourceSets.main, "littlemaidrebirth.refmap.json"
-}
-
-repositories {
-    maven { url = 'https://dist.creeper.host/Sponge/maven' }
 }
 
 version = project.mod_version
@@ -99,12 +95,6 @@ minecraft {
         }
     }
 }
-
-/*repositories {
-    flatDir {
-        dirs "repositories"
-    }
-}*/
 
 dependencies {
     // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
