@@ -1,8 +1,10 @@
 {
     "required": true,
-    "package": "com.sistr.littlemaidrebirth.mixin",
+    "package": "net.sistr.littlemaidrebirth.mixin",
     "compatibilityLevel": "JAVA_8",
     "refmap": "littlemaidrebirth.refmap.json",
-    "mixins": [ "MixinAbstractFurnaceTileEntity", "MixinCrossBowItem", "MixinDefaultedList", "MixinEntityDamageSource", "MixinLivingEntity", "MixinMeleeAttackGoal", "MixinPlayerEntity", "MixinPlayerManager", "MixinRangedWeaponItem", "MixinServerPlayer" ],
+    "mixins": [ "MixinAbstractFurnaceTileEntity", "MixinCrossBowItem", "MixinDefaultedList", "MixinEntityDamageSource",
+        "MixinLivingEntity", "MixinMeleeAttackGoal", "MixinPlayerEntity", "MixinPlayerManager", "MixinRangedWeaponItem",
+        "MixinServerPlayer" ],
     "minVersion": "0.8"
 }
