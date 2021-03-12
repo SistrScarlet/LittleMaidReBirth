@@ -3,6 +3,7 @@ package com.sistr.littlemaidrebirth.entity;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.sistr.littlemaidrebirth.Config;
+import com.sistr.littlemaidrebirth.api.mode.Mode;
 import com.sistr.littlemaidrebirth.entity.goal.*;
 import com.sistr.littlemaidrebirth.entity.iff.*;
 import com.sistr.littlemaidrebirth.entity.mode.*;

@@ -1,5 +1,7 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
+import com.sistr.littlemaidrebirth.api.mode.Mode;
+import com.sistr.littlemaidrebirth.api.mode.ModeManager;
 import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import com.sistr.littlemaidrebirth.util.MeleeAttackAccessor;
 import net.minecraft.entity.CreatureEntity;

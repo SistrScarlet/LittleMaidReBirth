@@ -1,6 +1,8 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
 import com.google.common.collect.Lists;
+import com.sistr.littlemaidrebirth.api.mode.Mode;
+import com.sistr.littlemaidrebirth.api.mode.ModeManager;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.enchantment.Enchantments;
 import net.minecraft.entity.CreatureEntity;

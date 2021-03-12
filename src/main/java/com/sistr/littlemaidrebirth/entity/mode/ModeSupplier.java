@@ -1,5 +1,6 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
+import com.sistr.littlemaidrebirth.api.mode.Mode;
 import net.minecraft.nbt.CompoundNBT;
 
 import java.util.Optional;

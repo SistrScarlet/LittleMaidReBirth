@@ -1,6 +1,8 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
-import com.sistr.littlemaidrebirth.api.item.IRangedWeapon;
+import com.sistr.littlemaidrebirth.api.mode.IRangedWeapon;
+import com.sistr.littlemaidrebirth.api.mode.Mode;
+import com.sistr.littlemaidrebirth.api.mode.ModeManager;
 import com.sistr.littlemaidrebirth.entity.AimingPoseable;
 import com.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import net.minecraft.entity.CreatureEntity;
@@ -8,6 +10,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
 import net.minecraft.item.BowItem;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.AxisAlignedBB;
@@ -60,8 +63,9 @@ public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSu
         }
         double distanceSq = this.mob.getDistanceSq(target.getPosX(), target.getPosY(), target.getPosZ());
         boolean canSee = this.mob.getEntitySenses().canSee(target);
-        net.minecraft.item.Item item = this.mob.getHeldItemMainhand().getItem();
-        float maxRange = ((IRangedWeapon) item).getMaxRange_LMRB();
+        ItemStack itemStack = this.mob.getHeldItemMainhand();
+        Item item = itemStack.getItem();
+        float maxRange = ((IRangedWeapon) item).getMaxRange_LMRB(itemStack, this.mob);
         Vector3d start = this.mob.getEyePosition(1F);
         Vector3d end = start.add(this.mob.getLook(1F)
                 .scale(maxRange));
@@ -154,7 +158,7 @@ public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSu
 
         //十分に引き絞ったか
         int useCount = fakePlayer.getItemInUseMaxCount();
-        int interval = ((IRangedWeapon) item).getInterval_LMRB();
+        int interval = ((IRangedWeapon) item).getInterval_LMRB(itemStack, this.mob);
         if (interval <= useCount) {
             //簡易誤射チェック、射線にターゲット以外が居る場合は撃たない
             float distance = MathHelper.sqrt(distanceSq);

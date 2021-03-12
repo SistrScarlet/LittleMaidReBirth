@@ -1,5 +1,7 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
+import com.sistr.littlemaidrebirth.api.mode.Mode;
+import com.sistr.littlemaidrebirth.api.mode.ModeManager;
 import com.sistr.littlemaidrebirth.entity.InventorySupplier;
 import com.sistr.littlemaidrebirth.entity.Tameable;
 import net.minecraft.entity.CreatureEntity;

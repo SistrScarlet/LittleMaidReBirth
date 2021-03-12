@@ -1,5 +1,6 @@
 package com.sistr.littlemaidrebirth.entity.mode;
 
+import com.sistr.littlemaidrebirth.api.mode.Mode;
 import net.minecraft.entity.ai.goal.Goal;
 
 import java.util.EnumSet;
