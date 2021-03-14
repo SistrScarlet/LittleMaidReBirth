@@ -178,7 +178,7 @@ public class LittleMaidEntity extends TameableEntity implements IEntityAdditiona
         this.goalSelector.addGoal(30, new LookAtGoal(this, PlayerEntity.class, 8.0F));
         this.goalSelector.addGoal(30, new LookRandomlyGoal(this));
 
-        this.targetSelector.addGoal(3, new PredicateRevengeGoal(this, this::isFriend));
+        this.targetSelector.addGoal(3, new PredicateRevengeGoal(this, entity -> !isFriend(entity)));
         this.targetSelector.addGoal(4, new OwnerHurtByTargetGoal(this));
         this.targetSelector.addGoal(5, new OwnerHurtTargetGoal(this));
         this.targetSelector.addGoal(6, new NearestAttackableTargetGoal<>(
