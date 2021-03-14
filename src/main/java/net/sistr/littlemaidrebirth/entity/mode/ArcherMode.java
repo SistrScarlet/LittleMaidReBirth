@@ -1,38 +1,40 @@
 package net.sistr.littlemaidrebirth.entity.mode;
 
-import net.sistr.littlemaidrebirth.api.mode.IRangedWeapon;
-import net.sistr.littlemaidrebirth.api.mode.Mode;
-import net.sistr.littlemaidrebirth.api.mode.ModeManager;
-import net.sistr.littlemaidrebirth.entity.AimingPoseable;
-import net.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import net.minecraft.entity.CreatureEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.projectile.ProjectileHelper;
-import net.minecraft.item.BowItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.common.util.FakePlayer;
+import net.sistr.littlemaidrebirth.api.mode.IRangedWeapon;
+import net.sistr.littlemaidrebirth.api.mode.Mode;
+import net.sistr.littlemaidrebirth.api.mode.ModeManager;
+import net.sistr.littlemaidrebirth.entity.AimingPoseable;
+import net.sistr.littlemaidrebirth.entity.FakePlayerSupplier;
 import net.sistr.lmml.entity.compound.SoundPlayable;
 import net.sistr.lmml.resource.util.LMSounds;
+
+import java.util.function.Predicate;
 
 public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSupplier & SoundPlayable> implements Mode {
     private final T mob;
     private final float inaccuracy;
-    private final java.util.function.Predicate<Entity> friend;
+    private final Predicate<Entity> friend;
     private int seeTime;
     private boolean strafingClockwise;
     private boolean strafingBackwards;
     private int strafingTime = -1;
     private int reUseCool;
 
-    public ArcherMode(T mob, float inaccuracy, java.util.function.Predicate<Entity> friend) {
+    public ArcherMode(T mob, float inaccuracy, Predicate<Entity> friend) {
         this.mob = mob;
         this.inaccuracy = inaccuracy;
         this.friend = friend;
@@ -65,7 +67,7 @@ public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSu
         boolean canSee = this.mob.getEntitySenses().canSee(target);
         ItemStack itemStack = this.mob.getHeldItemMainhand();
         Item item = itemStack.getItem();
-        float maxRange = ((IRangedWeapon) item).getMaxRange_LMRB(itemStack, this.mob);
+        float maxRange = item instanceof IRangedWeapon ? ((IRangedWeapon) item).getMaxRange_LMRB(itemStack, this.mob) : 16F;
         Vector3d start = this.mob.getEyePosition(1F);
         Vector3d end = start.add(this.mob.getLook(1F)
                 .scale(maxRange));
@@ -106,15 +108,14 @@ public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSu
             this.strafingTime = 0;
         }
 
-        if (distanceSq > (double) (maxRange * 0.75F)) {
+        if (maxRange < distanceSq) {
             this.strafingBackwards = false;
-        } else if (distanceSq < (double) (maxRange * 0.25F)) {
+        } else if (distanceSq < maxRange * 0.75F) {
             this.strafingBackwards = true;
         }
 
         this.mob.getMoveHelper().strafe(this.strafingBackwards ? -0.5F : 0.5F, this.strafingClockwise ? 0.5F : -0.5F);
         this.mob.faceEntity(target, 30.0F, 30.0F);
-
 
         FakePlayer fakePlayer = this.mob.getFakePlayer();
         Vector3d vec3d = fakePlayer.getEyePosition(1F);
@@ -141,7 +142,7 @@ public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSu
                 mob.play(LMSounds.SIGHTING);
 
                 ItemStack stack = fakePlayer.getHeldItemMainhand();
-                stack.useItemRightClick(mob.world, fakePlayer, net.minecraft.util.Hand.MAIN_HAND);
+                stack.useItemRightClick(mob.world, fakePlayer, Hand.MAIN_HAND);
             }
             return;
         }
@@ -158,7 +159,7 @@ public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSu
 
         //十分に引き絞ったか
         int useCount = fakePlayer.getItemInUseMaxCount();
-        int interval = ((IRangedWeapon) item).getInterval_LMRB(itemStack, this.mob);
+        int interval = item instanceof IRangedWeapon ? ((IRangedWeapon) item).getInterval_LMRB(itemStack, this.mob) : 25;
         if (interval <= useCount) {
             //簡易誤射チェック、射線にターゲット以外が居る場合は撃たない
             float distance = MathHelper.sqrt(distanceSq);
@@ -213,7 +214,6 @@ public class ArcherMode<T extends CreatureEntity & AimingPoseable & FakePlayerSu
 
     static {
         ModeManager.ModeItems items = new ModeManager.ModeItems();
-        items.add(BowItem.class);
         items.add(IRangedWeapon.class);
         ModeManager.INSTANCE.register(ArcherMode.class, items);
     }
