@@ -95,7 +95,7 @@ public class ModeManager {
             if (classes.contains(itemClass)) return true;
 
             for (Class<?> interfaceClass : interfaces) {
-                if (itemClass.isAssignableFrom(interfaceClass)) {
+                if (interfaceClass.isAssignableFrom(itemClass)) {
                     classes.add(itemClass);
                     return true;
                 }
