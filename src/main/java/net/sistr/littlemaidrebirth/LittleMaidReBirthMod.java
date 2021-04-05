@@ -7,14 +7,11 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.sistr.littlemaidrebirth.setup.ClientSetup;
 import net.sistr.littlemaidrebirth.setup.ModSetup;
 import net.sistr.littlemaidrebirth.setup.Registration;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @Mod("littlemaidrebirth")
 public class LittleMaidReBirthMod {
 
     public static final String MODID = "littlemaidrebirth";
-    public static final Logger LOGGER = LogManager.getLogger();
 
     public LittleMaidReBirthMod() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.COMMON_CONFIG);
